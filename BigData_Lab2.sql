@@ -2,44 +2,44 @@
 SELECT *
 FROM jbemployee;
 
-####2
+#### 2
 SELECT name
 FROM jbdept
 ORDER BY name ASC;
 
-####3
+#### 3
 SELECT name
 FROM jbparts
 WHERE qoh = 0;
 
-####4
+#### 4
 SELECT name
 FROM jbemployee
 WHERE salary>= 9000 AND salary <=10000;
 
-####5
+#### 5
 SELECT name, (startyear - birthyear) as age
 FROM jbemployee;
 
-####6
+#### 6
 SELECT name
 FROM jbemployee
 WHERE name like „%son,%“;
 
 
-####7
+#### 7
 SELECT name
 FROM jbitem item
 WHERE exists (SELECT *
                           FROM jbsupplier s
                           WHERE s.name=„Fisher-Price“ AND s.id=item.supplier);
 
-####8
+#### 8
 SELECT name
 FROM jbitem, jbsupplier
 WHERE jbitem.supplier=jbsupplier.id AND jbsupplier.name=„Fisher-Price“;
 
-####9
+#### 9
 SELECT name
 FROM jbcity city
 WHERE exists (SELECT *
@@ -47,7 +47,7 @@ WHERE exists (SELECT *
                           WHERE city.id=s.city);
 
 
-####10    1. Version ging und die anderen auch, aber die 1. ist die beste, weil am wenigsten Schreib
+#### 10    1. Version ging und die anderen auch, aber die 1. ist die beste, weil am wenigsten Schreib
 Arbeit
 SELECT name, color
 FROM jbparts part1
