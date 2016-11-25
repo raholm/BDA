@@ -14,6 +14,6 @@ def word_count(filename):
     print(distinct_wordcount)
 
 def main():
-    word_count("./test.py")
+    word_count("./wordcount.py")
 
 main()
