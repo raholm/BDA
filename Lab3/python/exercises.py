@@ -1,24 +1,43 @@
 def exercise01():
-    data = sc.textFile("../data/temperature-readings.csv").cache()
+    data = sc.textFile("../data/temperature-readings-small.csv")
 
     observations = data.map(lambda line: line.split(";"))
     observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
                                                             int(observation[1][0:4]) <= 2014))
-    temperatures = observations.map(lambda observation: (observation[1][0:4], observation[3]))
+
+    # 1
+    temperatures = observations.map(lambda observation: (observation[1][0:4], float(observation[3])))
     max_temperatures = temperatures.reduceByKey(max)
-    max_temperatures = max_temperatures.sortBy(ascending=False, keyfunc=lambda (key, value): value)
+    max_temperatures = max_temperatures.sortBy(ascending=False, keyfunc=lambda (year, temp): temp)
 
     min_temperatures = temperatures.reduceByKey(min)
-    min_temperatures = min_temperatures.sortBy(ascending=False, keyfunc=lambda (key, value): value)
+    min_temperatures = min_temperatures.sortBy(ascending=True, keyfunc=lambda (year, temp): temp)
 
+    print("Max:", max_temperatures.take(5))
+    print("Min:", min_temperatures.take(5))
 
-    station_temperatures = data.map(lambda row: (row[1][0:4], (row[0], float(row[3]))))
+    # 1a)
+    station_temperatures = observations.map(lambda observation: (observation[1][0:4], (observation[0],
+                                                                                       float(observation[3]))))
 
-    max_temperatures_station = station_temperatures.reduceByKey(lambda v1, v2: v1 if v1[1] > v2[1] else v2)
+    max_temperatures_station = station_temperatures.reduceByKey(lambda (station1, temp1), (station2, temp2):
+                                                                (station1, temp1)
+                                                                if temp1 > temp2 else
+                                                                (station2, temp2))
     max_temperatures_station = max_temperatures_station.sortBy(ascending=False,
-                                                               keyfunc=lambda (key, value): value[1])
+                                                               keyfunc=lambda (year, (station, temp)): temp)
 
-    print(max_temperatures_station.take(5))
+    min_temperatures_station = station_temperatures.reduceByKey(lambda (station1, temp1), (station2, temp2):
+                                                                (station1, temp1)
+                                                                if temp1 < temp2 else
+                                                                (station2, temp2))
+    min_temperatures_station = min_temperatures_station.sortBy(ascending=True,
+                                                               keyfunc=lambda (year, (station, temp)): temp)
+
+    print("Max (station):", max_temperatures_station.take(5))
+    print("Min (station):", min_temperatures_station.take(5))
+
+    # 1b)
 
 def exercise02():
     pass
