@@ -1,5 +1,5 @@
 def exercise01():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("../data/temperature-readings-small.csv").cache()
 
     observations = data.map(lambda line: line.split(";"))
     observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
