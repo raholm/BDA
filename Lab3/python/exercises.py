@@ -112,10 +112,10 @@ def exercise04():
     precipitation_data = sc.textFile("../data/precipitation-readings.csv")
 
     temp_obs = temperature_data.map(lambda line: line.split(";")) \
-                           .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
-                           .reduceByKey(max) \
-                           .filter(lambda ((day, station), temp):
-                                   temp >= 25 and temp <= 30 )
+                               .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
+                               .reduceByKey(max) \
+                               .filter(lambda ((day, station), temp):
+                                       temp >= 25 and temp <= 30 )
 
     precip_obs = precipitation_data.map(lambda line: line.split(";")) \
                                    .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
@@ -158,34 +158,23 @@ def exercise06():
 
     temperature_data = sc.textFile("../data/temperature-readings.csv").cache()
 
-    temp_avg_month_ostergotland = temperature_data.map(lambda line: line.split(";")) \
-                                                  .filter(lambda obs:
-                                                          stations.get(int(obs[0]), False)) \
-                                                  .filter(lambda obs:
-                                                          (int(obs[1][:4]) >= 1950 and
-                                                                       int(obs[1][:4]) <= 2014)) \
-                                                  .map(lambda obs:
-                                                       ((obs[1][:7], int(obs[0])), float(obs[3]))) \
-                                                  .groupByKey() \
-                                                  .map(lambda ((month, station), temps):
-                                                       ((month, station), (max(temps) + min(temps)) / 2))
-    temp_avg_month = temperature_data.map(lambda line: line.split(";")) \
-                                     .filter(lambda obs: (int(obs[1][:4]) >= 1950 and
-                                                          int(obs[1][:4]) <= 1980)) \
-                                     .map(lambda obs:
-                                          ((obs[1][:7], int(obs[0])), float(obs[3]))) \
-                                     .groupByKey() \
-                                     .map(lambda ((month, station), temps):
-                                          ((month, station), (max(temps) + min(temps)) / 2)) \
-                                     .map(lambda ((month, station), temp):
-                                          (month, temp)) \
+    station_avg_temp = temperature_data.map(lambda line: line.split(";")) \
+                                       .filter(lambda obs:
+                                               stations.get(int(obs[0]), False)) \
+                                       .filter(lambda obs:
+                                               (int(obs[1][:4]) >= 1950 and
+                                                int(obs[1][:4]) <= 2014)) \
+                                       .map(lambda obs:
+                                            ((obs[1][:7], int(obs[0])), float(obs[3]))) \
+                                       .groupByKey() \
+                                       .map(lambda ((month, station), temps):
+                                            ((month, station), (max(temps) + min(temps)) / 2))
+
+    month_avg_temp = station_avg_temp.filter(lambda ((month, station), temp):
+                                             int(month[:4]) <= 1980 ) \
                                      .groupByKey() \
                                      .map(lambda (month, temps):
                                           (month, sum(temps) / float(len(temps))))
-
-
-    temp_ostergotland = temp_avg_month_ostergotland.collect()
-    temp_all = temp_avg_month.collect()
 
 def main():
     # exercise01()
