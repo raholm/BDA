@@ -156,25 +156,85 @@ def exercise06():
                            .distinct().collect()
     stations = {station: True for station in stations}
 
-    temperature_data = sc.textFile("../data/temperature-readings.csv").cache()
+    """
+    How to extract the observations from the stations in ostergotland.
 
-    station_avg_temp = temperature_data.map(lambda line: line.split(";")) \
-                                       .filter(lambda obs:
-                                               stations.get(int(obs[0]), False)) \
-                                       .filter(lambda obs:
-                                               (int(obs[1][:4]) >= 1950 and
-                                                int(obs[1][:4]) <= 2014)) \
-                                       .map(lambda obs:
-                                            ((obs[1][:7], int(obs[0])), float(obs[3]))) \
-                                       .groupByKey() \
-                                       .map(lambda ((month, station), temps):
-                                            ((month, station), (max(temps) + min(temps)) / 2))
+    grep -E '75520|85250|85130|85390|85650|86420|85270|85280|85410|84260|86440|86130|85040|86200|86330|85180|86090|86340|86470|85450|86350|85460|86360|85220|85210|85050|85600|86370|87140|87150|85160|85490|85240|85630' temperature-readings.csv > temperature-readings-ostergotland.csv
+    """
 
-    month_avg_temp = station_avg_temp.filter(lambda ((month, station), temp):
-                                             int(month[:4]) <= 1980 ) \
-                                     .groupByKey() \
-                                     .map(lambda (month, temps):
-                                          (month, sum(temps) / float(len(temps))))
+    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv").cache()
+
+    station_month_avg_temp = temperature_data.map(lambda line: line.split(";")) \
+                                             .filter(lambda obs:
+                                                     stations.get(int(obs[0]), False)) \
+                                             .filter(lambda obs:
+                                                     (int(obs[1][:4]) >= 1950 and
+                                                      int(obs[1][:4]) <= 2014)) \
+                                             .map(lambda obs:
+                                                  ((obs[1], int(obs[0])), float(obs[3]))) \
+                                             .groupByKey() \
+                                             .map(lambda ((day, station), temps):
+                                                  ((day, station), (max(temps) + min(temps)) / 2)) \
+                                             .groupByKey() \
+                                             .map(lambda ((day, station), temps):
+                                                  ((day[:7], station), sum(temps) / float(len(temps)))) \
+                                             .groupByKey() \
+                                             .map(lambda ((month, station), temps):
+                                                  ((month, station), sum(temps) / float(len(temps))))
+
+    month_avg_temp = station_month_avg_temp.groupByKey() \
+                                           .map(lambda ((month, station), temps):
+                                                (month, sum(temps) / float(len(temps)))) \
+                                           .groupByKey() \
+                                           .map(lambda (month, temps):
+                                                (month, sum(temps) / float(len(temps)))) \
+                                           .sortBy(ascending=True, keyfunc=lambda (month, temp):
+                                                   month)
+
+    month_longterm_avg_temp = month_avg_temp.filter(lambda (month, temp):
+                                                    int(month[:4]) <= 1980) \
+                                            .groupByKey() \
+                                            .map(lambda (month, temps):
+                                                 (month[-2:], sum(temps) / float(len(temps)))) \
+                                            .groupByKey() \
+                                            .map(lambda (month, temps):
+                                                 (month, sum(temps) / float(len(temps)))) \
+                                            .sortBy(ascending=True, keyfunc=lambda (month, temp):
+                                                    month)
+
+    month_avg_temp.repartition(1).saveAsTextFile("../result/6_1")
+    month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
+
+def exercise06_plot():
+    import string
+    import matplotlib.pyplot as plt
+
+    identity = string.maketrans("", "")
+
+    station_month = []
+    station_temp = []
+
+    with open("../result/6_1/part-00000", "r") as file:
+        for line in file:
+            elements = line.translate(identity, " ()").split(",")
+            month, station, temp = elements[0], int(elements[1]), float(elements[2])
+
+            station_month.append(month)
+            station_temp.append(temp)
+
+
+    month = []
+    temp = []
+    with open("../result/6_2/part-00000", "r") as file:
+        for line in file:
+            elements = line.translate(identity, " ()").split(",")
+            month, temp = elements[0], float(elements[2])
+
+            month.append(month)
+            temp.append(temp)
+
+    plt.plot(station_month, station_temp)
+    plt.show()
 
 def main():
     # exercise01()
@@ -183,6 +243,7 @@ def main():
     # exercise04()
     # exercise05()
     exercise06()
+    # exercise06_plot()
 
 if __name__ == "__main__":
     main()
