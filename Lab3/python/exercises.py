@@ -9,7 +9,10 @@ def exercise01_spark():
     observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
                                                             int(observation[1][0:4]) <= 2014))
 
-    # 1
+    exercise01question(observations)
+    exercise01a(observations)
+
+def exercise01question(observations):
     temperatures = observations.map(lambda observation: (observation[1][0:4], float(observation[3])))
     max_temperatures = temperatures.reduceByKey(max)
     max_temperatures = max_temperatures.sortBy(ascending=False, keyfunc=lambda (year, temp): temp)
@@ -20,7 +23,7 @@ def exercise01_spark():
     print("Max:", max_temperatures.take(5))
     print("Min:", min_temperatures.take(5))
 
-    # 1a)
+def exercise01a(observations):
     station_temperatures = observations.map(lambda observation: (observation[1][0:4], (observation[0],
                                                                                        float(observation[3]))))
 
@@ -65,15 +68,20 @@ def exercise02():
     data = sc.textFile("../data/temperature-readings-small.csv")
 
     observations = data.map(lambda line: line.split(";"))
-    observations = observations.filter(lambda observation: (int(observation[1][:4]) >= 1950 and
-                                                            int(observation[1][:4]) <= 2014))
+    observations = observations.filter(lambda observation:
+                                       (int(observation[1][:4]) >= 1950 and
+                                        int(observation[1][:4]) <= 2014))
     exercise02a(observations)
     exercise02b(observations)
 
 def exercise02a(observations):
-    temperatures = observations.map(lambda observation: (observation[1][:7], float(observation[3])))
-    temperatures = temperatures.filter(lambda (month, temp): temp > 10)
-    reading_counts = temperatures.groupByKey().map(lambda (month, readings): (month, len(readings)))
+    temperatures = observations.map(lambda observation:
+                                    (observation[1][:7], float(observation[3])))
+    temperatures = temperatures.filter(lambda (month, temp):
+                                       temp > 10)
+    reading_counts = temperatures.groupByKey() \
+                                 .map(lambda (month, readings):
+                                      (month, len(readings)))
 
     print(reading_counts.take(5))
 
@@ -97,15 +105,17 @@ def exercise03():
     station_day_temperatures = observations.map(lambda observation: ((observation[1], observation[0]),
                                                                      float(observation[3])))
 
-    station_day_minmax_temps = station_day_temperatures.groupByKey().map(lambda ((day, station), temps):
-                                                                         ((day, station),
-                                                                          (min(temps), max(temps))))
+    station_day_minmax_temps = station_day_temperatures.groupByKey() \
+                                                       .map(lambda ((day, station), temps):
+                                                            ((day, station),
+                                                             (min(temps), max(temps))))
 
     station_month_temps = station_day_minmax_temps.map(lambda ((day, station), (mintemp, maxtemp)):
                                                        ((day[:7], station), sum((mintemp, maxtemp))))
-    station_month_mean_temp = station_month_temps.groupByKey().map(lambda ((month, station), temps):
-                                                                   ((month, station),
-                                                                    sum(temps) / (2 * float(len(temps)))))
+    station_month_mean_temp = station_month_temps.groupByKey() \
+                                                 .map(lambda ((month, station), temps):
+                                                      ((month, station),
+                                                       sum(temps) / (2 * float(len(temps)))))
     print(station_month_mean_temp.take(5))
 
 def exercise04():
