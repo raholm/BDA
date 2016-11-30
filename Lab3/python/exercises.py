@@ -67,15 +67,17 @@ def exercise02():
     observations = data.map(lambda line: line.split(";"))
     observations = observations.filter(lambda observation: (int(observation[1][:4]) >= 1950 and
                                                             int(observation[1][:4]) <= 2014))
+    exercise02a(observations)
+    exercise02b(observations)
 
-    # 2a
+def exercise02a(observations):
     temperatures = observations.map(lambda observation: (observation[1][:7], float(observation[3])))
     temperatures = temperatures.filter(lambda (month, temp): temp > 10)
     reading_counts = temperatures.groupByKey().map(lambda (month, readings): (month, len(readings)))
 
     print(reading_counts.take(5))
 
-    # 2b
+def exercise02b(observations):
     station_temperatures = observations.map(lambda observation: (observation[1][:7], (observation[0],
                                                                                       float(observation[3]))))
     station_temperatures = station_temperatures.filter(lambda (month, (station, temp)): temp > 10)
@@ -84,7 +86,6 @@ def exercise02():
     reading_counts = year_station.groupByKey().map(lambda (month, stations): (month, len(stations)))
 
     print(reading_counts.take(5))
-
 
 def exercise03():
     data = sc.textFile("../data/temperature-readings-small.csv")
@@ -205,37 +206,6 @@ def exercise06():
     month_avg_temp.repartition(1).saveAsTextFile("../result/6_1")
     month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
 
-def exercise06_plot():
-    import string
-    import matplotlib.pyplot as plt
-
-    identity = string.maketrans("", "")
-
-    station_month = []
-    station_temp = []
-
-    with open("../result/6_1/part-00000", "r") as file:
-        for line in file:
-            elements = line.translate(identity, " ()").split(",")
-            month, station, temp = elements[0], int(elements[1]), float(elements[2])
-
-            station_month.append(month)
-            station_temp.append(temp)
-
-
-    month = []
-    temp = []
-    with open("../result/6_2/part-00000", "r") as file:
-        for line in file:
-            elements = line.translate(identity, " ()").split(",")
-            month, temp = elements[0], float(elements[2])
-
-            month.append(month)
-            temp.append(temp)
-
-    plt.plot(station_month, station_temp)
-    plt.show()
-
 def main():
     # exercise01()
     # exercise02()
@@ -243,7 +213,6 @@ def main():
     # exercise04()
     # exercise05()
     exercise06()
-    # exercise06_plot()
 
 if __name__ == "__main__":
     main()
