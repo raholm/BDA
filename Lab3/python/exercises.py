@@ -1,3 +1,13 @@
+def exercise01():
+    data = sc.textFile("../data/temperature-readings-small.csv").cache()
+
+    observations = data.map(lambda line: line.split(";"))
+    observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
+                                                            int(observation[1][0:4]) <= 2014))
+
+    exercise01question(observations)
+    exercise01a(observations)
+
 def exercise01question(observations):
     temperatures = observations.map(lambda observation: (observation[1][0:4], float(observation[3])))
     max_temperatures = temperatures.reduceByKey(max)
@@ -30,16 +40,6 @@ def exercise01a(observations):
     print("Max (station):", max_temperatures_station.take(5))
     print("Min (station):", min_temperatures_station.take(5))
 
-def exercise01():
-    data = sc.textFile("../data/temperature-readings-small.csv").cache()
-
-    observations = data.map(lambda line: line.split(";"))
-    observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
-                                                            int(observation[1][0:4]) <= 2014))
-
-    exercise01question(observations)
-    exercise01a(observations)
-
 def exercise02():
     data = sc.textFile("../data/temperature-readings-small.csv")
 
@@ -62,11 +62,11 @@ def exercise02a(observations):
     print(reading_counts.take(5))
 
 def exercise02b(observations):
-    station_temperatures = observations.map(lambda observation: (observation[1][:7], (observation[0],
-                                                                                      float(observation[3]))))
+    station_temperatures = observations.map(lambda observation:
+                                            (observation[1][:7], (observation[0], float(observation[3]))))
     station_temperatures = station_temperatures.filter(lambda (month, (station, temp)): temp > 10)
 
-    year_station = station_temperatures.map(lambda (month, (station, temp)): (month, station)).distinct()
+    year_station = station_temperatures.map(lambda (month, (station, temp)): (month, stations)).distinct()
     reading_counts = year_station.groupByKey().map(lambda (month, stations): (month, len(stations)))
 
     print(reading_counts.take(5))
@@ -114,7 +114,7 @@ def exercise04():
 
     combined = temp_obs.join(precip_obs)
 
-    print(combined.take(6))
+    print(combined.take(5))
 
 def exercise05():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -130,11 +130,23 @@ def exercise05():
                                                 .filter(lambda obs: stations.get(int(obs[0]), False)) \
                                                 .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
                                                 .map(lambda ((day, station), precip):
-                                                     ((day[:7], station), precip)) \
-                                                .groupByKey() \
-                                                .map(lambda ((month, station), precips):
+                                                     ((day[:7], station), (precip, 1))) \
+                                                .reduceByKey(lambda (precip1, count1), (precip2, count2):
+                                                             (precip1 + precip2, count1 + count2)) \
+                                                .map(lambda ((month, station), (precip, count)):
                                                      ((month, station),
-                                                      sum(precips) / float(len(precips))))
+                                                      precips / float(count)))
+
+    # precipitation_avg_month = precipitation_data.map(lambda line: line.split(";")) \
+    #                                             .filter(lambda obs: stations.get(int(obs[0]), False)) \
+    #                                             .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
+    #                                             .map(lambda ((day, station), precip):
+    #                                                  ((day[:7], station), precip)) \
+    #                                             .groupByKey() \
+    #                                             .map(lambda ((month, station), precips):
+    #                                                  ((month, station),
+    #                                                   sum(precips) / float(len(precips))))
+
     print(precipitation_avg_month.take(5))
 
 def exercise06():
