@@ -1,17 +1,3 @@
-import csv
-
-from collections import defaultdict
-
-def exercise01_spark():
-    data = sc.textFile("../data/temperature-readings-small.csv").cache()
-
-    observations = data.map(lambda line: line.split(";"))
-    observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
-                                                            int(observation[1][0:4]) <= 2014))
-
-    exercise01question(observations)
-    exercise01a(observations)
-
 def exercise01question(observations):
     temperatures = observations.map(lambda observation: (observation[1][0:4], float(observation[3])))
     max_temperatures = temperatures.reduceByKey(max)
@@ -44,25 +30,15 @@ def exercise01a(observations):
     print("Max (station):", max_temperatures_station.take(5))
     print("Min (station):", min_temperatures_station.take(5))
 
-def exercise01_python():
-    with open('../data/temperature-readings-small.csv', 'rb') as csvfile:
-        data = csv.reader(csvfile, delimiter=' ', quotechar='|')
-
-        year_temp = defaultdict(list)
-        for row in data:
-            values = ', '.join(row).split(";")
-
-            year = values[1][:4]
-            temp = float(values[3])
-
-            year_temp[year].append(temp)
-
-        for year in year_temp:
-            print(year, max(year_temp[year]), min(year_temp[year]))
-
 def exercise01():
-    exercise01_spark()
-    exercise01_python()
+    data = sc.textFile("../data/temperature-readings-small.csv").cache()
+
+    observations = data.map(lambda line: line.split(";"))
+    observations = observations.filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
+                                                            int(observation[1][0:4]) <= 2014))
+
+    exercise01question(observations)
+    exercise01a(observations)
 
 def exercise02():
     data = sc.textFile("../data/temperature-readings-small.csv")
@@ -102,8 +78,9 @@ def exercise03():
     observations = observations.filter(lambda observation: (int(observation[1][:4]) >= 1960 and
                                                             int(observation[1][:4]) <= 2014))
 
-    station_day_temperatures = observations.map(lambda observation: ((observation[1], observation[0]),
-                                                                     float(observation[3])))
+    station_day_temperatures = observations.map(lambda observation:
+                                                ((observation[1], observation[0]),
+                                                 float(observation[3])))
 
     station_day_minmax_temps = station_day_temperatures.groupByKey() \
                                                        .map(lambda ((day, station), temps):
