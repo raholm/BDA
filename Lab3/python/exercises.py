@@ -172,46 +172,42 @@ def exercise06():
 
     temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv").cache()
 
-    station_month_avg_temp = temperature_data.map(lambda line: line.split(";")) \
-                                             .filter(lambda obs:
-                                                     stations.get(int(obs[0]), False)) \
-                                             .filter(lambda obs:
-                                                     (int(obs[1][:4]) >= 1950 and
-                                                      int(obs[1][:4]) <= 2014)) \
-                                             .map(lambda obs:
-                                                  ((obs[1], int(obs[0])), float(obs[3]))) \
-                                             .groupByKey() \
-                                             .map(lambda ((day, station), temps):
-                                                  ((day, station), (max(temps) + min(temps)) / 2)) \
-                                             .groupByKey() \
-                                             .map(lambda ((day, station), temps):
-                                                  ((day[:7], station), sum(temps) / float(len(temps)))) \
-                                             .groupByKey() \
-                                             .map(lambda ((month, station), temps):
-                                                  ((month, station), sum(temps) / float(len(temps))))
+    temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
+                                                .filter(lambda obs:
+                                                        stations.get(int(obs[0]), False)) \
+                                                .filter(lambda obs:
+                                                        (int(obs[1][:4]) >= 1950 and
+                                                         int(obs[1][:4]) <= 2014)).cache()
 
-    month_avg_temp = station_month_avg_temp.groupByKey() \
-                                           .map(lambda ((month, station), temps):
-                                                (month, sum(temps) / float(len(temps)))) \
-                                           .groupByKey() \
-                                           .map(lambda (month, temps):
-                                                (month, sum(temps) / float(len(temps)))) \
-                                           .sortBy(ascending=True, keyfunc=lambda (month, temp):
-                                                   month)
+    month_avg_temp = temperature_data_filtered.map(lambda obs:
+                                                   ((obs[1], int(obs[0])),
+                                                    (float(obs[3]), float(obs[3])))) \
+                                              .reduceByKey(lambda (mint1, maxt1), (mint2, maxt2):
+                                                           (min(mint1, mint2), max(maxt1, maxt2))) \
+                                              .map(lambda ((day, station), (mint, maxt)):
+                                                   (day[:7], (mint + maxt, 2))) \
+                                              .reduceByKey(lambda (temp1, count1), (temp2, count2):
+                                                           (temp1 + temp2, count1 + count2)) \
+                                              .map(lambda (month, (temp, count)):
+                                                   (month, temp / float(count))) \
+                                              .sortBy(ascending=True, keyfunc=lambda (month, temp):
+                                                      month).cache()
 
     month_longterm_avg_temp = month_avg_temp.filter(lambda (month, temp):
                                                     int(month[:4]) <= 1980) \
-                                            .groupByKey() \
-                                            .map(lambda (month, temps):
-                                                 (month[-2:], sum(temps) / float(len(temps)))) \
-                                            .groupByKey() \
-                                            .map(lambda (month, temps):
-                                                 (month, sum(temps) / float(len(temps)))) \
+                                            .map(lambda (month, temp):
+                                                 (month[-2:], (temp, 1))) \
+                                            .reduceByKey(lambda (temp1, count1), (temp2, count2):
+                                                         (temp1 + temp2, count1 + count2)) \
+                                            .map(lambda (month, (temp, count)):
+                                                 (month, temp / float(count))) \
                                             .sortBy(ascending=True, keyfunc=lambda (month, temp):
                                                     month)
 
-    month_avg_temp.repartition(1).saveAsTextFile("../result/6_1")
-    month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
+    print(month_avg_temp.take(5))
+    print(month_longterm_avg_temp.take(5))
+    # month_avg_temp.repartition(1).saveAsTextFile("../result/6_1")
+    # month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
 
 def main():
     # exercise01()
