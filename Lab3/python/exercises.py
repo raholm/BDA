@@ -88,11 +88,12 @@ def exercise03():
                                                              (min(temps), max(temps))))
 
     station_month_temps = station_day_minmax_temps.map(lambda ((day, station), (mintemp, maxtemp)):
-                                                       ((day[:7], station), sum((mintemp, maxtemp))))
-    station_month_mean_temp = station_month_temps.groupByKey() \
-                                                 .map(lambda ((month, station), temps):
-                                                      ((month, station),
-                                                       sum(temps) / (2 * float(len(temps)))))
+                                                       ((day[:7], station), (sum((mintemp, maxtemp)), 2))) \
+                                                  .reduceByKey(lambda (temp1, count1), (temp2, count2):
+                                                               (temp1 + temp2, count1 + count2)) \
+                                                  .map(lambda ((month, station), (temp, count)):
+                                                       ((month, station), temp / float(count)))
+
     print(station_month_mean_temp.take(5))
 
 def exercise04():
@@ -196,12 +197,9 @@ def exercise06():
 def main():
     # exercise01()
     # exercise02()
-    # exercise03()
+    exercise03()
     # exercise04()
     # exercise05()
-    exercise06()
-
-if __name__ == "__main__":
-    main()
+    # exercise06()
 
 main()
