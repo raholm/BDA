@@ -3,8 +3,8 @@ def exercise01():
 
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda observation:
-                               (int(observation[1][0:4]) >= 1950 and
-                                int(observation[1][0:4]) <= 2014)) \
+                               (int(observation[1][:4]) >= 1950 and
+                                int(observation[1][:4]) <= 2014)) \
                        .cache()
 
     exercise01question(observations)
@@ -12,7 +12,7 @@ def exercise01():
 
 def exercise01question(observations):
     temperatures = observations.map(lambda observation:
-                                    (observation[1][0:4], float(observation[3])))
+                                    (observation[1][:4], float(observation[3])))
     max_temperatures = temperatures.reduceByKey(max) \
                                    .sortBy(ascending=False,
                                            keyfunc=lambda (year, temp): temp)
@@ -26,7 +26,7 @@ def exercise01question(observations):
 
 def exercise01a(observations):
     station_temperatures = observations.map(lambda observation:
-                                            (observation[1][0:4],
+                                            (observation[1][:4],
                                              (observation[0], float(observation[3]))))
 
     max_temperatures_station = station_temperatures.reduceByKey(lambda (station1, temp1), (station2, temp2):
@@ -232,10 +232,10 @@ def exercise06():
     # month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
 
 def main():
-    # exercise01()
+    exercise01()
     # exercise02()
     # exercise03()
-    exercise04()
+    # exercise04()
     # exercise05()
     # exercise06()
 
