@@ -118,13 +118,19 @@ def exercise04():
                                .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
                                .reduceByKey(max) \
                                .filter(lambda ((day, station), temp):
-                                       temp >= 25 and temp <= 30 )
+                                       temp >= 25 and temp <= 30 ) \
+                               .map(lambda ((day, station), temp):
+                                    (station, day)) \
+                               .groupByKey()
 
     precip_obs = precipitation_data.map(lambda line: line.split(";")) \
                                    .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
                                    .reduceByKey(lambda precip1, precip2: precip1 + precip2) \
                                    .filter(lambda ((day, station), precip):
-                                           precip >= 100 and precip <= 200)
+                                           precip >= 100 and precip <= 200) \
+                                   .map(lambda ((day, station), precip):
+                                        (station, day)) \
+                                   .groupByKey()
 
     combined = temp_obs.join(precip_obs)
 
@@ -212,11 +218,12 @@ def exercise06():
     # month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
 
 def main():
-    exercise01()
-    exercise02()
-    exercise03()
+    # exercise01()
+    # exercise02()
+    # exercise03()
     exercise04()
-    exercise05()
-    exercise06()
+    # exercise05()
+    # exercise06()
+
 
 main()
