@@ -1,15 +1,18 @@
 def exercise01():
-    data = sc.textFile("../data/temperature-readings-small.csv").cache()
+    data = sc.textFile("../data/temperature-readings-small.csv")
 
     observations = data.map(lambda line: line.split(";")) \
-                       .filter(lambda observation: (int(observation[1][0:4]) >= 1950 and
-                                                    int(observation[1][0:4]) <= 2014))
+                       .filter(lambda observation:
+                               (int(observation[1][0:4]) >= 1950 and
+                                int(observation[1][0:4]) <= 2014)) \
+                       .cache()
 
     exercise01question(observations)
     exercise01a(observations)
 
 def exercise01question(observations):
-    temperatures = observations.map(lambda observation: (observation[1][0:4], float(observation[3])))
+    temperatures = observations.map(lambda observation:
+                                    (observation[1][0:4], float(observation[3])))
     max_temperatures = temperatures.reduceByKey(max) \
                                    .sortBy(ascending=False,
                                            keyfunc=lambda (year, temp): temp)
@@ -22,8 +25,9 @@ def exercise01question(observations):
     print("Min:", min_temperatures.take(5))
 
 def exercise01a(observations):
-    station_temperatures = observations.map(lambda observation: (observation[1][0:4], (observation[0],
-                                                                                       float(observation[3]))))
+    station_temperatures = observations.map(lambda observation:
+                                            (observation[1][0:4],
+                                             (observation[0], float(observation[3]))))
 
     max_temperatures_station = station_temperatures.reduceByKey(lambda (station1, temp1), (station2, temp2):
                                                                 (station1, temp1)
@@ -48,7 +52,8 @@ def exercise02():
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda observation:
                                (int(observation[1][:4]) >= 1950 and
-                                int(observation[1][:4]) <= 2014))
+                                int(observation[1][:4]) <= 2014)) \
+                       .cache()
 
     exercise02a(observations)
     exercise02b(observations)
@@ -56,8 +61,7 @@ def exercise02():
 def exercise02a(observations):
     temperatures = observations.map(lambda observation:
                                     (observation[1][:7], (float(observation[3]), 1))) \
-                               .filter(lambda (month, (temp, count)):
-                                       temp > 10)
+                               .filter(lambda (month, (temp, count)): temp > 10)
     reading_counts = temperatures.reduceByKey(lambda (temp1, count1), (temp2, count2):
                                               (temp1, count1 + count2)) \
                                  .map(lambda (month, (temp, count)):
@@ -138,10 +142,8 @@ def exercise05():
 
     precipitation_daily = precipitation_data.map(lambda line: line.split(";")) \
                                             .filter(lambda obs: stations.get(int(obs[0]), False)) \
-                                            .map(lambda obs: ((obs[1], obs[2]),
-                                                              float(obs[3]))) \
-                                            .map(lambda ((day, time), precip):
-                                                 (day, precip)) \
+                                            .map(lambda obs: ((obs[1], obs[2]), float(obs[3]))) \
+                                            .map(lambda ((day, time), precip): (day, precip)) \
                                             .reduceByKey(lambda precip1, precip2:
                                                          precip1 + precip2)
 
@@ -170,14 +172,14 @@ def exercise06():
     grep -E '75520|85250|85130|85390|85650|86420|85270|85280|85410|84260|86440|86130|85040|86200|86330|85180|86090|86340|86470|85450|86350|85460|86360|85220|85210|85050|85600|86370|87140|87150|85160|85490|85240|85630' temperature-readings.csv > temperature-readings-ostergotland.csv
     """
 
-    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv").cache()
+    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
 
     temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
                                                 .filter(lambda obs:
                                                         stations.get(int(obs[0]), False)) \
                                                 .filter(lambda obs:
                                                         (int(obs[1][:4]) >= 1950 and
-                                                         int(obs[1][:4]) <= 2014)).cache()
+                                                         int(obs[1][:4]) <= 2014))
 
     month_avg_temp = temperature_data_filtered.map(lambda obs:
                                                    ((obs[1], int(obs[0])),
@@ -191,7 +193,7 @@ def exercise06():
                                               .map(lambda (month, (temp, count)):
                                                    (month, temp / float(count))) \
                                               .sortBy(ascending=True, keyfunc=lambda (month, temp):
-                                                      month).cache()
+                                                      month)
 
     month_longterm_avg_temp = month_avg_temp.filter(lambda (month, temp):
                                                     int(month[:4]) <= 1980) \
@@ -210,11 +212,11 @@ def exercise06():
     # month_longterm_avg_temp.repartition(1).saveAsTextFile("../result/6_2")
 
 def main():
-    # exercise01()
-    # exercise02()
-    # exercise03()
-    # exercise04()
-    # exercise05()
+    exercise01()
+    exercise02()
+    exercise03()
+    exercise04()
+    exercise05()
     exercise06()
 
 main()
