@@ -111,26 +111,44 @@ def exercise03():
     print(station_month_avg_temps.take(5))
 
 def exercise04():
-    temperature_data = sc.textFile("../data/temperature-readings.csv")
-    precipitation_data = sc.textFile("../data/precipitation-readings.csv")
+    temperature_data = sc.textFile("../data/temperature-readings.csv").cache()
+    precipitation_data = sc.textFile("../data/precipitation-readings.csv").cache()
 
-    temp_obs = temperature_data.map(lambda line: line.split(";")) \
-                               .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
-                               .reduceByKey(max) \
-                               .filter(lambda ((day, station), temp):
-                                       temp >= 25 and temp <= 30 ) \
-                               .groupByKey()
+    temp_obs1 = temperature_data.map(lambda line: line.split(";")) \
+                                .map(lambda obs: ((obs[1][-2:], int(obs[0])), float(obs[3]))) \
+                                .filter(lambda ((day, station), temp):
+                                        temp >= 25 and temp <= 30 ) \
+                                .reduceByKey(max)
 
-    precip_obs = precipitation_data.map(lambda line: line.split(";")) \
-                                   .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
-                                   .reduceByKey(lambda precip1, precip2: precip1 + precip2) \
-                                   .filter(lambda ((day, station), precip):
-                                           precip >= 100 and precip <= 200) \
-                                   .groupByKey()
+    precip_obs1 = precipitation_data.map(lambda line: line.split(";")) \
+                                    .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
+                                    .reduceByKey(lambda precip1, precip2: precip1 + precip2) \
+                                    .map(lambda ((day, station), precip):
+                                         ((day[-2:], station), precip)) \
+                                    .filter(lambda ((day, station), precip):
+                                            precip >= 100 and precip <= 200) \
+                                    .reduceByKey(max)
 
-    combined = temp_obs.join(precip_obs)
+    combined1 = temp_obs1.join(precip_obs1)
+    print(combined1.take(5))
 
-    print(combined.take(5))
+    temp_obs2 = temperature_data.map(lambda line: line.split(";")) \
+                                .map(lambda obs: ((obs[1][-2:], int(obs[0])), float(obs[3]))) \
+                                .reduceByKey(max) \
+                                .filter(lambda ((day, station), temp):
+                                        temp >= 25 and temp <= 30 )
+
+    precip_obs2 = precipitation_data.map(lambda line: line.split(";")) \
+                                    .map(lambda obs: ((obs[1], int(obs[0])), float(obs[3]))) \
+                                    .reduceByKey(lambda precip1, precip2: precip1 + precip2) \
+                                    .map(lambda ((day, station), precip):
+                                         ((day[-2:], station), precip)) \
+                                    .reduceByKey(max) \
+                                    .filter(lambda ((day, station), precip):
+                                            precip >= 100 and precip <= 200)
+
+    combined2 = temp_obs2.join(precip_obs2)
+    print(combined2.take(5))
 
 def exercise05():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
