@@ -119,8 +119,6 @@ def exercise04():
                                .reduceByKey(max) \
                                .filter(lambda ((day, station), temp):
                                        temp >= 25 and temp <= 30 ) \
-                               .map(lambda ((day, station), temp):
-                                    (station, day)) \
                                .groupByKey()
 
     precip_obs = precipitation_data.map(lambda line: line.split(";")) \
@@ -128,8 +126,6 @@ def exercise04():
                                    .reduceByKey(lambda precip1, precip2: precip1 + precip2) \
                                    .filter(lambda ((day, station), precip):
                                            precip >= 100 and precip <= 200) \
-                                   .map(lambda ((day, station), precip):
-                                        (station, day)) \
                                    .groupByKey()
 
     combined = temp_obs.join(precip_obs)
