@@ -192,12 +192,6 @@ def exercise06():
                            .distinct().collect()
     stations = {station: True for station in stations}
 
-    """
-    How to extract the observations from the stations in ostergotland.
-
-    grep -E '75520|85250|85130|85390|85650|86420|85270|85280|85410|84260|86440|86130|85040|86200|86330|85180|86090|86340|86470|85450|86350|85460|86360|85220|85210|85050|85600|86370|87140|87150|85160|85490|85240|85630' temperature-readings.csv > temperature-readings-ostergotland.csv
-    """
-
     temperature_data = sc.textFile("../data/temperature-readings.csv")
 
     temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
