@@ -9,29 +9,13 @@ def exercise06_plot():
     avg_year_month = []
     avg_temp = []
 
-    with open("../result/6_1/part-00000", "r") as file:
+    with open("../nsc_result/6/part-00000", "r") as file:
         for line in file:
             elements = ''.join([char for char in line if char not in chars_remove]).split(",")
-            year_month, temp = datetime.strptime(elements[0].strip(), "%Y-%m"), abs(float(elements[1]))
+            year_month, temp = datetime.strptime(elements[0].strip(), "%Y-%m"), float(elements[1])
 
             avg_year_month.append(year_month)
             avg_temp.append(temp)
-
-    longterm_month = []
-    longterm_avg_temp = []
-
-    with open("../result/6_2/part-00000", "r") as file:
-        for line in file:
-            elements = ''.join([char for char in line if char not in chars_remove]).split(",")
-            month, temp = datetime.strptime(elements[0], '%m'), abs(float(elements[1]))
-
-            longterm_month.append(month)
-            longterm_avg_temp.append(temp)
-
-    for i, date in enumerate(avg_year_month):
-        for j, month in enumerate(longterm_month):
-            if date.month == month.month:
-                avg_temp[i] -= longterm_avg_temp[j]
 
     plt.plot(avg_year_month, avg_temp)
     plt.xlabel("Date", size=15)

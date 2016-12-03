@@ -207,7 +207,7 @@ def exercise06():
     grep -E '75520|85250|85130|85390|85650|86420|85270|85280|85410|84260|86440|86130|85040|86200|86330|85180|86090|86340|86470|85450|86350|85460|86360|85220|85210|85050|85600|86370|87140|87150|85160|85490|85240|85630' temperature-readings.csv > temperature-readings-ostergotland.csv
     """
 
-    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
+    temperature_data = sc.textFile("../data/temperature-readings.csv")
 
     temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
                                                 .filter(lambda obs:
@@ -244,19 +244,19 @@ def exercise06():
     month_temp = {month: temp for month, temp in month_longterm_avg_temp.collect()}
 
     month_avg_temp = month_avg_temp.map(lambda (month, temp):
-                                        (month, temp - month_temp[month[-2:]]))
+                                        (month, abs(temp) - abs(month_temp[month[-2:]])))
 
     # print(month_longterm_avg_temp.take(5))
     # print(month_avg_temp.take(5))
-    month_avg_temp.repartition(1).saveAsTextFile("result/6")
+    month_avg_temp.repartition(1).saveAsTextFile("../nsc_result/6")
 
 def main():
-    exercise01()
+    # exercise01()
     # exercise02()
     # exercise03()
     # exercise04()
     # exercise05()
-    # exercise06()
+    exercise06()
 
 
 main()
