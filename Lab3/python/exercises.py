@@ -176,8 +176,7 @@ def exercise05():
 
     precipitation_daily = precipitation_data.map(lambda line: line.split(";")) \
                                             .filter(lambda obs: stations.get(int(obs[0]), False)) \
-                                            .map(lambda obs: ((obs[1], obs[2]), float(obs[3]))) \
-                                            .map(lambda ((day, time), precip): (day, precip)) \
+                                            .map(lambda obs: (obs[1], float(obs[3]))) \
                                             .reduceByKey(lambda precip1, precip2:
                                                          precip1 + precip2)
 
@@ -190,8 +189,8 @@ def exercise05():
                                                   .map(lambda (month, (precip, count)):
                                                        (month, precip / float(count)))
 
-    # print(precipitation_avg_month.take(5))
-    precipitation_avg_month.repartition(1).saveAsTextFile("result2/5")
+    print(precipitation_avg_month.take(5))
+    # precipitation_avg_month.repartition(1).saveAsTextFile("result2/5")
 
 def exercise06():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -255,8 +254,8 @@ def main():
     # exercise02()
     # exercise03()
     # exercise04()
-    # exercise05()
-    exercise06()
+    exercise05()
+    # exercise06()
 
 
 main()
