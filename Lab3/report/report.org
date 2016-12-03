@@ -1,7 +1,7 @@
 #+TITLE: Big Data Analytics \\ 732A54 \\ Lab 3
 #+AUTHOR: Karolina Ziomek, Rasmus Holm
 #+LANGUAGE:  en
-#+OPTIONS:   H:5 num:nil toc:nil \n:nil @:t ::t |:t ^:nil -:t f:t *:t <:t
+#+OPTIONS:   H:5 num:nil toc:nil
 #+LaTeX_CLASS_OPTIONS: [10pt]
 
 \newpage
@@ -77,7 +77,20 @@
 (u '1972
    ',(u '98200 ',31.2))
 *** b)
+\begin{flushleft}
+Running time for sequential execution on the temperature-readings.csv
+\end{flushleft}
+|-----------+-----------+----------|
+| Real      | User      | Sys      |
+|-----------+-----------+----------|
+| 2m43.850s | 2m41.552s | 0m2.340s |
+|           |           |          |
+|-----------+-----------+----------|
+
+\begin{flushleft}
 Running time for sequential execution on the temperatures-big.csv
+\end{flushleft}
+|------------+------------+-----------|
 | Real       | User       | Sys       |
 |------------+------------+-----------|
 | 15m11.000s | 14m31.339s | 0m21.987s |
@@ -85,12 +98,26 @@ Running time for sequential execution on the temperatures-big.csv
 |------------+------------+-----------|
 
 \begin{flushleft}
+Running time for parallel execution on the temperature-readings.csv
+\end{flushleft}
+|--------------|
+| Real         |
+|--------------|
+| 3mins, 48sec |
+|--------------|
+
+\begin{flushleft}
 Running time for parallel execution on the temperatures-big.csv
 \end{flushleft}
+|-------------|
 | Real        |
 |-------------|
 | 9mins, 7sec |
 |-------------|
+
+
+What we can see from the execution times is that the sequential program is faster with lower amount of data while you gain quite a bit by running in parallel with a larger data set. 
+This is intuitively sound since there are a lot of overhead in parallel execution and if the calculations cannot dominate the execution time it is not worth it.
 
 ** Code
 *** Initialization
@@ -374,6 +401,8 @@ precipitation_avg_month.repartition(1).saveAsTextFile("../nsc_result/5")
 (u '1950 -10 ',-0.46052051524713367)
 
 [[./images/fig.png]]
+
+We can see from the plot that there is no pattern to be recognized and we can conclude that global warming is a hoax.
 ** Code
 *** Data
 #+BEGIN_SRC python
