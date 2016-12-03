@@ -21,7 +21,7 @@ Year-month, difference
 """
 
 def exercise01():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("../data/temperature-readings.csv")
 
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda observation:
@@ -44,10 +44,8 @@ def exercise01question(observations):
                                    .sortBy(ascending=False,
                                            keyfunc=lambda (year, temp): temp)
 
-    # print("Max:", max_temperatures.take(5))
-    # print("Min:", min_temperatures.take(5))
-    min_temperatures.repartition(1).saveAsTextFile("result/1_qa")
-    max_temperatures.repartition(1).saveAsTextFile("result/1_qb")
+    min_temperatures.repartition(1).saveAsTextFile("../nsc_result/1_qa")
+    max_temperatures.repartition(1).saveAsTextFile("../nsc_result/1_qb")
 
 def exercise01a(observations):
     station_temperatures = observations.map(lambda observation:
@@ -68,14 +66,12 @@ def exercise01a(observations):
                                                    .sortBy(ascending=False,
                                                            keyfunc=lambda (year, (station, temp)): temp)
 
-    # print("Min (station):", min_temperatures_station.take(5))
-    # print("Max (station):", max_temperatures_station.take(5))
 
-    min_temperatures_station.repartition(1).saveAsTextFile("result/1_aa")
-    max_temperatures_station.repartition(1).saveAsTextFile("result/1_ab")
+    min_temperatures_station.repartition(1).saveAsTextFile("../nsc_result/1_aa")
+    max_temperatures_station.repartition(1).saveAsTextFile("../nsc_result/1_ab")
 
 def exercise02():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("../data/temperature-readings.csv")
 
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda observation:
@@ -95,8 +91,7 @@ def exercise02a(observations):
                                  .map(lambda (month, (temp, count)):
                                       (month, count))
 
-    # print(reading_counts.take(5))
-    reading_counts.repartition(1).saveAsTextFile("result/2_a")
+    reading_counts.repartition(1).saveAsTextFile("../nsc_result/2_a")
 
 
 def exercise02b(observations):
@@ -110,11 +105,10 @@ def exercise02b(observations):
                                               (station1, count1 + count2)) \
                                  .map(lambda (month, (station, count)): (month, count))
 
-    # print(reading_counts.take(5))
-    reading_counts.repartition(1).saveAsTextFile("result/2_b")
+    reading_counts.repartition(1).saveAsTextFile("../nsc_result/2_b")
 
 def exercise03():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("../data/temperature-readings.csv")
 
     observations = data.map(lambda line: line.split(";"))
     observations = observations.filter(lambda observation:
@@ -138,8 +132,7 @@ def exercise03():
                                                       .map(lambda ((month, station), (temp, count)):
                                                            ((month, station), temp / float(count)))
 
-    print(station_month_avg_temps.take(5))
-    station_month_avg_temps.repartition(1).saveAsTextFile("result/3")
+    station_month_avg_temps.repartition(1).saveAsTextFile("../nsc_result/3")
 
 def exercise04():
     temperature_data = sc.textFile("../data/temperature-readings.csv").cache()
@@ -161,8 +154,8 @@ def exercise04():
                                    .reduceByKey(max)
 
     combined = temp_obs.join(precip_obs)
-    # print(combined.take(5))
-    combined.repartition(1).saveAsTextFile("result/4")
+
+    combined.repartition(1).saveAsTextFile("../nsc_result/4")
 
 def exercise05():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -189,8 +182,7 @@ def exercise05():
                                                   .map(lambda (month, (precip, count)):
                                                        (month, precip / float(count)))
 
-    print(precipitation_avg_month.take(5))
-    # precipitation_avg_month.repartition(1).saveAsTextFile("result2/5")
+    precipitation_avg_month.repartition(1).saveAsTextFile("../nsc_result/5")
 
 def exercise06():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -206,7 +198,7 @@ def exercise06():
     grep -E '75520|85250|85130|85390|85650|86420|85270|85280|85410|84260|86440|86130|85040|86200|86330|85180|86090|86340|86470|85450|86350|85460|86360|85220|85210|85050|85600|86370|87140|87150|85160|85490|85240|85630' temperature-readings.csv > temperature-readings-ostergotland.csv
     """
 
-    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
+    temperature_data = sc.textFile("../data/temperature-readings.csv")
 
     temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
                                                 .filter(lambda obs:
@@ -241,8 +233,6 @@ def exercise06():
                                         (month, abs(temp) - abs(month_temp[month[-2:]]))) \
                                    .sortBy(ascending=True, keyfunc=lambda (month, temp): month)
 
-    # print(month_longterm_avg_temp.take(5))
-    print(month_avg_temp.take(5))
     month_avg_temp.repartition(1).saveAsTextFile("../nsc_result/6")
 
 def main():
@@ -251,7 +241,7 @@ def main():
     # exercise03()
     # exercise04()
     # exercise05()
-    exercise06()
+    # exercise06()
 
 
 main()
