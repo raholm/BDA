@@ -1,3 +1,10 @@
 data/
 *.pyc
 *~
+_SUCCESS
+*.crc
+*.aux
+*.log
+*.ou
+*.toc
+*.out

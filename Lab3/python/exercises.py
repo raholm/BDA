@@ -206,13 +206,12 @@ def exercise06():
     grep -E '75520|85250|85130|85390|85650|86420|85270|85280|85410|84260|86440|86130|85040|86200|86330|85180|86090|86340|86470|85450|86350|85460|86360|85220|85210|85050|85600|86370|87140|87150|85160|85490|85240|85630' temperature-readings.csv > temperature-readings-ostergotland.csv
     """
 
-    temperature_data = sc.textFile("../data/temperature-readings.csv")
+    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
 
     temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
                                                 .filter(lambda obs:
-                                                        stations.get(int(obs[0]), False)) \
-                                                .filter(lambda obs:
-                                                        (int(obs[1][:4]) >= 1950 and
+                                                        (stations.get(int(obs[0]), False) and
+                                                         int(obs[1][:4]) >= 1950 and
                                                          int(obs[1][:4]) <= 2014))
 
     month_avg_temp = temperature_data_filtered.map(lambda obs:
@@ -225,9 +224,7 @@ def exercise06():
                                               .reduceByKey(lambda (temp1, count1), (temp2, count2):
                                                            (temp1 + temp2, count1 + count2)) \
                                               .map(lambda (month, (temp, count)):
-                                                   (month, temp / float(count))) \
-                                              .sortBy(ascending=True, keyfunc=lambda (month, temp):
-                                                      month)
+                                                   (month, temp / float(count)))
 
     month_longterm_avg_temp = month_avg_temp.filter(lambda (month, temp):
                                                     int(month[:4]) <= 1980) \
@@ -236,17 +233,16 @@ def exercise06():
                                             .reduceByKey(lambda (temp1, count1), (temp2, count2):
                                                          (temp1 + temp2, count1 + count2)) \
                                             .map(lambda (month, (temp, count)):
-                                                 (month, temp / float(count))) \
-                                            .sortBy(ascending=True, keyfunc=lambda (month, temp):
-                                                    month)
+                                                 (month, temp / float(count)))
 
     month_temp = {month: temp for month, temp in month_longterm_avg_temp.collect()}
 
     month_avg_temp = month_avg_temp.map(lambda (month, temp):
-                                        (month, abs(temp) - abs(month_temp[month[-2:]])))
+                                        (month, abs(temp) - abs(month_temp[month[-2:]]))) \
+                                   .sortBy(ascending=True, keyfunc=lambda (month, temp): month)
 
     # print(month_longterm_avg_temp.take(5))
-    # print(month_avg_temp.take(5))
+    print(month_avg_temp.take(5))
     month_avg_temp.repartition(1).saveAsTextFile("../nsc_result/6")
 
 def main():
@@ -254,8 +250,8 @@ def main():
     # exercise02()
     # exercise03()
     # exercise04()
-    exercise05()
-    # exercise06()
+    # exercise05()
+    exercise06()
 
 
 main()
