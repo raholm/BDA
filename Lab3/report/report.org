@@ -115,10 +115,10 @@ Running time for parallel execution on the temperatures-big.csv
 | 9mins, 7sec |
 |-------------|
 
-
+\begin{flushleft}
 What we can see from the execution times is that the sequential program is faster with lower amount of data while you gain quite a bit by running in parallel with a larger data set. 
 This is intuitively sound since there are a lot of overhead in parallel execution and if the calculations cannot dominate the execution time it is not worth it.
-
+\end{flushleft}
 ** Code
 *** Initialization
 #+BEGIN_SRC python
@@ -319,6 +319,10 @@ station_month_avg_temps.repartition(1).saveAsTextFile("../nsc_result/3")
 (75250 ,(30.0 ,101.8))
 (52350 ,(30.0 ,101.6))
 (71420 ,(30.0 ,106.3))
+\newline
+\begin{flushleft}
+We filtered before finding the maximums else the result would be empty.
+\end{flushleft}
 ** Code
 #+BEGIN_SRC python
 def exercise04():
