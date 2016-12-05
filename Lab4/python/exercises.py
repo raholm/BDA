@@ -19,17 +19,41 @@ Year-month, avg monthly precipitation
 Exercise 6:
 Year-month, difference
 """
+from pyspark import SparkContext
+from pyspark.sql import SQLContext, Row, functions
 
+if not "sc" in locals() or not "sc" in globals():
+    sc = SparkContext()
 
+if not "sqlContext" in locals() or not "sqlContext" in globals():
+    sqlContext = SQLContext(sc)
 
 def exercise01():
-    data = sc.textFile("../data/temperature-readings.csv")
+    data = sc.textFile("../data/temperature-readings-small.csv")
 
     observations = data.map(lambda line: line.split(";")) \
-                       .filter(lambda observation:
-                               (int(observation[1][:4]) >= 1950 and
-                                int(observation[1][:4]) <= 2014)) \
-                       .cache()
+                       .filter(lambda obs:
+                               (int(obs[1][:4]) >= 1950 and
+                                int(obs[1][:4]) <= 2014)) \
+                       .map(lambda obs: Row(station=obs[0],
+                                            date=obs[1],
+                                            year=obs[1].split("-")[0],
+                                            month=obs[1].split("-")[1],
+                                            day=obs[1].split("-")[2],
+                                            time=obs[2],
+                                            value=float(obs[3]),
+                                            quality=obs[4]))
+
+    # schema_temp_readings_names = ["station", "date", "year", "month", "dat", "time", "value", "quality"]
+    # schema_temp_readings = sqlContext.createDataFrame(observations, schema_temp_readings_names)
+    schema_temp_readings = sqlContext.createDataFrame(observations)
+    schema_temp_readings.registerTempTable("temp_readings")
+
+    year_max_temp = sqlContext.sql(
+        """SELECT year, max(value) AS max_value
+        FROM temp_readings
+        GROUP BY year""")
+    print(year_max_temp.take(10))
 
 def exercise02():
     pass
