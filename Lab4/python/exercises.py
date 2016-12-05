@@ -35,7 +35,7 @@ def exercise01():
                        .filter(lambda obs:
                                (int(obs[1][:4]) >= 1950 and
                                 int(obs[1][:4]) <= 2014)) \
-                       .map(lambda obs: Row(station=obs[0],
+                       .map(lambda obs: Row(station=int(obs[0]),
                                             year=obs[1].split("-")[0],
                                             temp=float(obs[3])))
 
@@ -105,7 +105,7 @@ def exercise02():
                        .filter(lambda obs:
                                (int(obs[1][:4]) >= 1950 and
                                 int(obs[1][:4]) <= 2014)) \
-                       .map(lambda obs: Row(station=obs[0],
+                       .map(lambda obs: Row(station=int(obs[0]),
                                             month=obs[1][:7],
                                             temp=float(obs[3])))
 
@@ -147,7 +147,7 @@ def exercise03():
                        .filter(lambda obs:
                                (int(obs[1][:4]) >= 1960 and
                                 int(obs[1][:4]) <= 2014)) \
-                       .map(lambda obs: Row(station=obs[0],
+                       .map(lambda obs: Row(station=int(obs[0]),
                                             day=obs[1],
                                             month=obs[1][:7],
                                             temp=float(obs[3])))
@@ -173,7 +173,41 @@ def exercise03():
 
 
 def exercise04():
-    pass
+    temperature_data = sc.textFile("../data/temperature-readings-small2.csv")
+    precipitation_data = sc.textFile("../data/precipitation-readings.csv")
+
+    temperature_obs = temperature_data.map(lambda line: line.split(";")) \
+                                      .map(lambda obs: Row(station=int(obs[0]),
+                                                           temp=float(obs[3])))
+
+    precipitation_obs = precipitation_data.map(lambda line: line.split(";")) \
+                                          .map(lambda obs: Row(station=int(obs[0]),
+                                                               day=obs[1],
+                                                               precip=float(obs[3])))
+
+    schema_temp_readings = sqlContext.createDataFrame(temperature_obs)
+    schema_temp_readings.registerTempTable("temp_readings")
+
+    schema_precip_readings = sqlContext.createDataFrame(precipitation_obs)
+    schema_precip_readings.registerTempTable("precip_readings")
+
+    combined = sqlContext.sql(
+        """
+        SELECT tr.station, MAX(temp) AS max_temp, MAX(precip) AS max_precip
+        FROM
+        temp_readings AS tr
+        INNER JOIN
+        (
+        SELECT station, SUM(precip) AS precip
+        FROM precip_readings
+        GROUP BY day, station
+        ) AS pr
+        ON tr.station = pr.station
+        GROUP BY tr.station
+        """
+    )
+
+    print(combined.take(5))
 
 def exercise05():
     pass
@@ -184,8 +218,8 @@ def exercise06():
 def main():
     # exercise01()
     # exercise02()
-    exercise03()
-    # exercise04()
+    # exercise03()
+    exercise04()
     # exercise05()
     # exercise06()
 
