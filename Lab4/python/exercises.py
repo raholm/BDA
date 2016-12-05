@@ -128,7 +128,6 @@ def exercise02a():
     print(month_count.take(5))
 
 def exercise02b():
-
     month_distinct_count = sqlContext.sql(
         """
         SELECT month, COUNT(DISTINCT(station)) AS count
@@ -210,17 +209,68 @@ def exercise04():
     print(combined.take(5))
 
 def exercise05():
-    pass
+    station_data = sc.textFile("../data/stations-Ostergotland.csv")
+
+    stations = station_data.map(lambda line: line.split(";")) \
+                           .map(lambda obs: int(obs[0])) \
+                           .distinct().collect()
+    stations = {station: True for station in stations}
+
+    precipitation_data = sc.textFile("../data/precipitation-readings.csv")
+
+    precipitation_obs = precipitation_data.map(lambda line: line.split(";")) \
+                                          .filter(lambda obs: stations.get(int(obs[0]), False)) \
+                                          .map(lambda obs: Row(day=obs[1],
+                                                               month=obs[1][:7],
+                                                               precip=float(obs[3])))
+
+    schema_precip_readings = sqlContext.createDataFrame(precipitation_obs)
+    schema_precip_readings.registerTempTable("precip_readings")
+
+    precipitation_avg_month = sqlContext.sql(
+        """
+        SELECT month, AVG(precip) AS avg_precip
+        FROM
+        (
+        SELECT month, SUM(precip) AS precip
+        FROM precip_readings
+        GROUP BY day, month
+        )
+        GROUP BY month
+        """
+    )
+
+    print(precipitation_avg_month.take(5))
 
 def exercise06():
-    pass
+    station_data = sc.textFile("../data/stations-Ostergotland.csv")
+
+    stations = station_data.map(lambda line: line.split(";")) \
+                           .map(lambda obs: int(obs[0])) \
+                           .distinct().collect()
+    stations = {station: True for station in stations}
+
+    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
+
+    temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
+                                                .filter(lambda obs:
+                                                        (stations.get(int(obs[0]), False) and
+                                                         int(obs[1][:4]) >= 1950 and
+                                                         int(obs[1][:4]) <= 2014)) \
+                                                .map(lambda obs: Row(station=int(obs[0]),
+                                                                     day=obs[1],
+                                                                     month=obs[1][:7],
+                                                                     temp=float(obs[3])))
+
+    schema_temp_readings = sqlContext.createDataFrame(temperature_data_filtered)
+    schema_temp_readings.registerTempTable("temp_readings")
 
 def main():
     # exercise01()
     # exercise02()
     # exercise03()
-    exercise04()
-    # exercise05()
+    # exercise04()
+    exercise05()
     # exercise06()
 
 
