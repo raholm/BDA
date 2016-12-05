@@ -49,10 +49,32 @@ def exercise01():
     schema_temp_readings = sqlContext.createDataFrame(observations)
     schema_temp_readings.registerTempTable("temp_readings")
 
-    year_max_temp = sqlContext.sql(
-        """SELECT year, max(value) AS max_value
+    year_min_temp = sqlContext.sql(
+        """
+        SELECT DISTINCT(year) AS year, station, value
+        FROM
+        (
+        SELECT year, station, value, MIN(value) OVER (PARTITION BY year) max_value
         FROM temp_readings
-        GROUP BY year""")
+        )
+        WHERE value = max_value
+        """
+    )
+
+    year_max_temp = sqlContext.sql(
+        """
+        SELECT DISTINCT(year) AS year, station, value
+        FROM
+        (
+        SELECT year, station, value, MAX(value) OVER (PARTITION BY year) max_value
+        FROM temp_readings
+        )
+        WHERE value = max_value
+        """
+    )
+
+
+    print(year_min_temp.take(10))
     print(year_max_temp.take(10))
 
 def exercise02():
