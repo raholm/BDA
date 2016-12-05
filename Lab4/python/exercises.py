@@ -105,7 +105,29 @@ def exercise02():
     print(month_distinct_count.take(5))
 
 def exercise03():
-    pass
+    data = sc.textFile("../data/temperature-readings-small.csv")
+
+    observations = data.map(lambda line: line.split(";")) \
+                       .filter(lambda obs:
+                               (int(obs[1][:4]) >= 1950 and
+                                int(obs[1][:4]) <= 2014)) \
+                       .map(lambda obs: Row(station=obs[0],
+                                            day=obs[1],
+                                            temp=float(obs[3])))
+
+    schema_temp_readings = sqlContext.createDataFrame(observations)
+    schema_temp_readings.registerTempTable("temp_readings")
+
+    station_day_minmax_temps = sqlContext.sql(
+        """
+        SELECT day, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
+        FROM temp_readings
+        GROUP BY day, station
+        """
+    )
+
+    print(station_day_minmax_temps.take(5))
+
 
 def exercise04():
     pass
@@ -118,8 +140,8 @@ def exercise06():
 
 def main():
     # exercise01()
-    exercise02()
-    # exercise03()
+    # exercise02()
+    exercise03()
     # exercise04()
     # exercise05()
     # exercise06()
