@@ -154,7 +154,7 @@ def exercise03():
     schema_temp_readings = sqlContext.createDataFrame(observations)
     schema_temp_readings.registerTempTable("temp_readings")
 
-    station_day_minmax_temps = sqlContext.sql(
+    station_month_avg_temps = sqlContext.sql(
         """
         SELECT month, station, AVG(max_temp + min_temp) / 2 AS avg_temp
         FROM
@@ -168,7 +168,7 @@ def exercise03():
         """
     )
 
-    print(station_day_minmax_temps.take(5))
+    print(station_month_avg_temps.take(5))
 
 
 def exercise04():
@@ -265,13 +265,50 @@ def exercise06():
     schema_temp_readings = sqlContext.createDataFrame(temperature_data_filtered)
     schema_temp_readings.registerTempTable("temp_readings")
 
+    month_avg_temp = sqlContext.sql(
+        """
+        SELECT avg.month, ABS(avg.avg_temp) - ABS(longterm.longterm_avg_temp) AS temp
+        FROM
+        (
+        SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
+        FROM
+        (
+        SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
+        FROM temp_readings
+        GROUP BY day, month, station
+        )
+        GROUP BY month
+        ) AS avg
+        INNER JOIN
+        (
+        SELECT SUBSTRING(month, 6, 7) AS month, AVG(avg_temp) AS longterm_avg_temp
+        FROM
+        (
+        SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
+        FROM
+        (
+        SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
+        FROM temp_readings
+        GROUP BY day, month, station
+        )
+        GROUP BY month
+        )
+        WHERE INT(SUBSTRING(month, 1, 4)) <= 1980
+        GROUP BY SUBSTRING(month, 6, 7)
+        ) AS longterm
+        ON SUBSTRING(avg.month, 6, 7) = longterm.month
+        ORDER BY month
+        """
+    )
+
+    print(month_avg_temp.take(5))
+
 def main():
     # exercise01()
     # exercise02()
     # exercise03()
     # exercise04()
-    exercise05()
-    # exercise06()
-
+    # exercise05()
+    exercise06()
 
 main()
