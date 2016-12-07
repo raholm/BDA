@@ -112,9 +112,9 @@ def exercise02():
     schema_temp_readings = sqlContext.createDataFrame(observations)
     schema_temp_readings.registerTempTable("temp_readings")
 
-    exercise02a()
+    # exercise02a()
     exercise02aAPI(schema_temp_readings)
-    exercise02b()
+    # exercise02b()
     exercise02bAPI(schema_temp_readings)
 
 def exercise02aAPI(table):
