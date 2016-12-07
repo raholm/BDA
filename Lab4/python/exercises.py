@@ -113,7 +113,16 @@ def exercise02():
     schema_temp_readings.registerTempTable("temp_readings")
 
     exercise02a()
+    exercise02aAPI(schema_temp_readings)
     exercise02b()
+    exercise02bAPI(schema_temp_readings)
+
+def exercise02aAPI(table):
+    month_count = table.filter(table.temp > 10) \
+                       .groupBy("month") \
+                       .agg(functions.count("*").alias("count"))
+
+    print(month_count.take(5))
 
 def exercise02a():
     month_count = sqlContext.sql(
@@ -126,6 +135,13 @@ def exercise02a():
     )
 
     print(month_count.take(5))
+
+def exercise02bAPI(table):
+    month_distinct_count = table.filter(table.temp > 10) \
+                                .groupBy("month") \
+                                .agg(functions.countDistinct("station").alias("count"))
+
+    print(month_distinct_count.take(5))
 
 def exercise02b():
     month_distinct_count = sqlContext.sql(
@@ -305,10 +321,10 @@ def exercise06():
 
 def main():
     # exercise01()
-    # exercise02()
+    exercise02()
     # exercise03()
     # exercise04()
     # exercise05()
-    exercise06()
+    # exercise06()
 
 main()
