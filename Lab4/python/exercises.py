@@ -118,9 +118,10 @@ def exercise02():
     exercise02bAPI(schema_temp_readings)
 
 def exercise02aAPI(table):
-    month_count = table.filter(table.temp > 10) \
+    month_count = table.filter(table["temp"] > 10) \
                        .groupBy("month") \
-                       .agg(functions.count("*").alias("count"))
+                       .agg(functions.count("*").alias("count")) \
+                       .orderBy(functions.count("*").desc())
 
     print(month_count.take(5))
 
@@ -131,15 +132,17 @@ def exercise02a():
         FROM temp_readings
         WHERE temp > 10
         GROUP BY month
+        ORDER BY COUNT(*) DESC
         """
     )
 
     print(month_count.take(5))
 
 def exercise02bAPI(table):
-    month_distinct_count = table.filter(table.temp > 10) \
+    month_distinct_count = table.filter(table["temp"] > 10) \
                                 .groupBy("month") \
-                                .agg(functions.countDistinct("station").alias("count"))
+                                .agg(functions.countDistinct("station").alias("count")) \
+                                .orderBy(functions.countDistinct("station").desc())
 
     print(month_distinct_count.take(5))
 
@@ -150,6 +153,7 @@ def exercise02b():
         FROM temp_readings
         WHERE temp > 10
         GROUP BY month
+        ORDER BY COUNT(DISTINCT(station)) DESC
         """
     )
 
@@ -180,7 +184,7 @@ def exercise03():
         GROUP BY day, month, station
         )
         GROUP BY month, station
-        ORDER BY month
+        ORDER BY AVG(max_temp + min_temp) / 2 DESC
         """
     )
 
@@ -219,6 +223,7 @@ def exercise04():
         ) AS pr
         ON tr.station = pr.station
         GROUP BY tr.station
+        ORDER BY tr.station DESC
         """
     )
 
@@ -253,6 +258,7 @@ def exercise05():
         GROUP BY day, month
         )
         GROUP BY month
+        ORDER BY month DESC
         """
     )
 
@@ -313,7 +319,7 @@ def exercise06():
         GROUP BY SUBSTRING(month, 6, 7)
         ) AS longterm
         ON SUBSTRING(avg.month, 6, 7) = longterm.month
-        ORDER BY month
+        ORDER BY month DESC
         """
     )
 
@@ -321,7 +327,7 @@ def exercise06():
 
 def main():
     # exercise01()
-    exercise02()
+    # exercise02()
     # exercise03()
     # exercise04()
     # exercise05()
