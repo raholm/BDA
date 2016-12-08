@@ -51,7 +51,7 @@ def exercise01question():
         SELECT year, MIN(temp) AS temp
         FROM temp_readings
         GROUP BY year
-        ORDER BY temp ASC
+        ORDER BY temp DESC
         """
     )
 
@@ -289,9 +289,6 @@ def exercise06():
 
     month_avg_temp = sqlContext.sql(
         """
-        SELECT avg.month, ABS(avg.avg_temp) - ABS(longterm.longterm_avg_temp) AS temp
-        FROM
-        (
         SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
         FROM
         (
@@ -300,30 +297,60 @@ def exercise06():
         GROUP BY day, month, station
         )
         GROUP BY month
-        ) AS avg
-        INNER JOIN
-        (
-        SELECT SUBSTRING(month, 6, 7) AS month, AVG(avg_temp) AS longterm_avg_temp
-        FROM
-        (
-        SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
-        FROM
-        (
-        SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
-        FROM temp_readings
-        GROUP BY day, month, station
-        )
-        GROUP BY month
-        )
-        WHERE INT(SUBSTRING(month, 1, 4)) <= 1980
-        GROUP BY SUBSTRING(month, 6, 7)
-        ) AS longterm
-        ON SUBSTRING(avg.month, 6, 7) = longterm.month
-        ORDER BY month DESC
         """
     )
 
-    print(month_avg_temp.take(5))
+    longterm_avg_temp = month_avg_temp.filter(functions.substring(month_avg_temp["month"], 1, 4) <= 1980) \
+                                      .groupBy(functions.substring(month_avg_temp["month"], 6, 7).alias("month")) \
+                                      .agg(functions.avg(month_avg_temp["avg_temp"]).alias("longterm_avg_temp"))
+
+    result = month_avg_temp.join(longterm_avg_temp,
+                                   (functions.substring(month_avg_temp["month"], 6, 7) ==
+                                    longterm_avg_temp["month"]), "inner") \
+                             .select(month_avg_temp["month"],
+                                     (functions.abs(month_avg_temp["avg_temp"]) -
+                                      functions.abs(longterm_avg_temp["longterm_avg_temp"])).alias("temp")) \
+                             .orderBy(month_avg_temp["month"].desc())
+
+    print(result.take(5))
+
+    # result = sqlContext.sql(
+    #     """
+    #     SELECT avg.month, ABS(avg.avg_temp) - ABS(longterm.longterm_avg_temp) AS temp
+    #     FROM
+    #     (
+    #     SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
+    #     FROM
+    #     (
+    #     SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
+    #     FROM temp_readings
+    #     GROUP BY day, month, station
+    #     )
+    #     GROUP BY month
+    #     ) AS avg
+    #     INNER JOIN
+    #     (
+    #     SELECT SUBSTRING(month, 6, 7) AS month, AVG(avg_temp) AS longterm_avg_temp
+    #     FROM
+    #     (
+    #     SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
+    #     FROM
+    #     (
+    #     SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
+    #     FROM temp_readings
+    #     GROUP BY day, month, station
+    #     )
+    #     GROUP BY month
+    #     )
+    #     WHERE INT(SUBSTRING(month, 1, 4)) <= 1980
+    #     GROUP BY SUBSTRING(month, 6, 7)
+    #     ) AS longterm
+    #     ON SUBSTRING(avg.month, 6, 7) = longterm.month
+    #     ORDER BY month DESC
+    #     """
+    # )
+
+    # print(result.take(5))
 
 def main():
     # exercise01()
@@ -331,6 +358,6 @@ def main():
     # exercise03()
     # exercise04()
     # exercise05()
-    # exercise06()
+    exercise06()
 
 main()
