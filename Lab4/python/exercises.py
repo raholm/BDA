@@ -65,8 +65,12 @@ def exercise01question():
         """
     )
 
-    print(year_min_temp.take(5))
-    print(year_max_temp.take(5))
+    # print(year_min_temp.take(5))
+    # print(year_max_temp.take(5))
+
+    year_min_temp.repartition(1).saveAsTextFile("../nsc_result/1_qa")
+    year_max_temp.repartition(1).saveAsTextFile("../nsc_result/1_qb")
+
 
 def exercise01a():
     year_min_temp = sqlContext.sql(
@@ -95,8 +99,8 @@ def exercise01a():
         """
     )
 
-    print(year_min_temp.take(5))
-    print(year_max_temp.take(5))
+    year_min_temp.repartition(1).saveAsTextFile("../nsc_result/1_aa")
+    year_max_temp.repartition(1).saveAsTextFile("../nsc_result/1_ab")
 
 def exercise02():
     data = sc.textFile("../data/temperature-readings-small.csv")
@@ -123,7 +127,7 @@ def exercise02aAPI(table):
                        .agg(functions.count("*").alias("count")) \
                        .orderBy(functions.count("*").desc())
 
-    print(month_count.take(5))
+    month_counts.repartition(1).saveAsTextFile("../nsc_result/2_a")
 
 def exercise02a():
     month_count = sqlContext.sql(
@@ -144,7 +148,8 @@ def exercise02bAPI(table):
                                 .agg(functions.countDistinct("station").alias("count")) \
                                 .orderBy(functions.countDistinct("station").desc())
 
-    print(month_distinct_count.take(5))
+    # print(month_distinct_count.take(5))
+    month_distinct_count.repartition(1).saveAsTextFile("../nsc_result/2_b")
 
 def exercise02b():
     month_distinct_count = sqlContext.sql(
@@ -188,7 +193,8 @@ def exercise03():
         """
     )
 
-    print(station_month_avg_temps.take(5))
+    # print(station_month_avg_temps.take(5))
+    station_month_avg_temps.repartition(1).saveAsTextFile("../nsc_result/3")
 
 
 def exercise04():
@@ -227,7 +233,8 @@ def exercise04():
         """
     )
 
-    print(combined.take(5))
+    # print(combined.take(5))
+    combined.repartition(1).saveAsTextFile("../nsc_result/4")
 
 def exercise05():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -262,7 +269,8 @@ def exercise05():
         """
     )
 
-    print(precipitation_avg_month.take(5))
+    # print(precipitation_avg_month.take(5))
+    precipitation_avg_month.repartition(1).saveAsTextFile("../nsc_result/5")
 
 def exercise06():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -352,12 +360,14 @@ def exercise06():
 
     # print(result.take(5))
 
+    result.repartition(1).saveAsTextFile("../nsc_result/6")
+
 def main():
     # exercise01()
     # exercise02()
     # exercise03()
     # exercise04()
     # exercise05()
-    exercise06()
+    # exercise06()
 
 main()
