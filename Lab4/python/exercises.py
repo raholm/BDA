@@ -328,44 +328,6 @@ def exercise06():
                                       functions.abs(longterm_avg_temp["longterm_avg_temp"])).alias("temp")) \
                              .orderBy(month_avg_temp["month"].desc())
 
-    print(result.take(5))
-
-    # result = sqlContext.sql(
-    #     """
-    #     SELECT avg.month, ABS(avg.avg_temp) - ABS(longterm.longterm_avg_temp) AS temp
-    #     FROM
-    #     (
-    #     SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
-    #     FROM
-    #     (
-    #     SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
-    #     FROM temp_readings
-    #     GROUP BY day, month, station
-    #     )
-    #     GROUP BY month
-    #     ) AS avg
-    #     INNER JOIN
-    #     (
-    #     SELECT SUBSTRING(month, 6, 7) AS month, AVG(avg_temp) AS longterm_avg_temp
-    #     FROM
-    #     (
-    #     SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
-    #     FROM
-    #     (
-    #     SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
-    #     FROM temp_readings
-    #     GROUP BY day, month, station
-    #     )
-    #     GROUP BY month
-    #     )
-    #     WHERE INT(SUBSTRING(month, 1, 4)) <= 1980
-    #     GROUP BY SUBSTRING(month, 6, 7)
-    #     ) AS longterm
-    #     ON SUBSTRING(avg.month, 6, 7) = longterm.month
-    #     ORDER BY month DESC
-    #     """
-    # )
-
     # print(result.take(5))
 
     result.repartition(1).saveAsTextFile("../nsc_result/6")
