@@ -68,8 +68,8 @@ def exercise01question():
     # print(year_min_temp.take(5))
     # print(year_max_temp.take(5))
 
-    year_min_temp.repartition(1).saveAsTextFile("../nsc_result/1_qa")
-    year_max_temp.repartition(1).saveAsTextFile("../nsc_result/1_qb")
+    year_min_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_qa")
+    year_max_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_qb")
 
 
 def exercise01a():
@@ -99,8 +99,8 @@ def exercise01a():
         """
     )
 
-    year_min_temp.repartition(1).saveAsTextFile("../nsc_result/1_aa")
-    year_max_temp.repartition(1).saveAsTextFile("../nsc_result/1_ab")
+    year_min_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_aa")
+    year_max_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_ab")
 
 def exercise02():
     data = sc.textFile("../data/temperature-readings-small.csv")
@@ -127,7 +127,7 @@ def exercise02aAPI(table):
                        .agg(functions.count("*").alias("count")) \
                        .orderBy(functions.count("*").desc())
 
-    month_counts.repartition(1).saveAsTextFile("../nsc_result/2_a")
+    month_counts.rdd.repartition(1).saveAsTextFile("../nsc_result/2_a")
 
 def exercise02a():
     month_count = sqlContext.sql(
@@ -149,7 +149,7 @@ def exercise02bAPI(table):
                                 .orderBy(functions.countDistinct("station").desc())
 
     # print(month_distinct_count.take(5))
-    month_distinct_count.repartition(1).saveAsTextFile("../nsc_result/2_b")
+    month_distinct_count.rdd.repartition(1).saveAsTextFile("../nsc_result/2_b")
 
 def exercise02b():
     month_distinct_count = sqlContext.sql(
@@ -194,7 +194,7 @@ def exercise03():
     )
 
     # print(station_month_avg_temps.take(5))
-    station_month_avg_temps.repartition(1).saveAsTextFile("../nsc_result/3")
+    station_month_avg_temps.rdd.repartition(1).saveAsTextFile("../nsc_result/3")
 
 
 def exercise04():
@@ -234,7 +234,7 @@ def exercise04():
     )
 
     # print(combined.take(5))
-    combined.repartition(1).saveAsTextFile("../nsc_result/4")
+    combined.rdd.repartition(1).saveAsTextFile("../nsc_result/4")
 
 def exercise05():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
@@ -242,7 +242,8 @@ def exercise05():
     stations = station_data.map(lambda line: line.split(";")) \
                            .map(lambda obs: int(obs[0])) \
                            .distinct().collect()
-    stations = {station: True for station in stations}
+    stations = sc.broadcast(stations)
+    stations = {station: True for station in stations.value}
 
     precipitation_data = sc.textFile("../data/precipitation-readings.csv")
 
@@ -250,6 +251,7 @@ def exercise05():
                                           .filter(lambda obs: stations.get(int(obs[0]), False)) \
                                           .map(lambda obs: Row(day=obs[1],
                                                                month=obs[1][:7],
+                                                               station=int(obs[0]),
                                                                precip=float(obs[3])))
 
     schema_precip_readings = sqlContext.createDataFrame(precipitation_obs)
@@ -260,25 +262,31 @@ def exercise05():
         SELECT month, AVG(precip) AS avg_precip
         FROM
         (
-        SELECT month, SUM(precip) AS precip
+        SELECT month, station, SUM(precip) AS precip
+        FROM
+        (
+        SELECT month, station, SUM(precip) AS precip
         FROM precip_readings
-        GROUP BY day, month
+        GROUP BY day, month, station
+        )
+        GROUP BY month, station
         )
         GROUP BY month
         ORDER BY month DESC
         """
     )
 
-    # print(precipitation_avg_month.take(5))
-    precipitation_avg_month.repartition(1).saveAsTextFile("../nsc_result/5")
+    print(precipitation_avg_month.rdd.take(5))
+    # precipitation_avg_month.rdd.repartition(1).saveAsTextFile("../nsc_result/5")
 
 def exercise06():
     station_data = sc.textFile("../data/stations-Ostergotland.csv")
 
     stations = station_data.map(lambda line: line.split(";")) \
                            .map(lambda obs: int(obs[0])) \
-                           .distinct().collect()
-    stations = {station: True for station in stations}
+                           .distinct()
+    stations = sc.broadcast(stations)
+    stations = {station: True for station in stations.value}
 
     temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
 
@@ -367,7 +375,7 @@ def main():
     # exercise02()
     # exercise03()
     # exercise04()
-    # exercise05()
+    exercise05()
     # exercise06()
 
 main()
