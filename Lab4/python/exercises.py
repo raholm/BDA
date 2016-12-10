@@ -29,7 +29,7 @@ if not "sqlContext" in locals() or not "sqlContext" in globals():
     sqlContext = SQLContext(sc)
 
 def exercise01():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("/user/x_rahol/data/temperature-readings.csv")
 
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda obs:
@@ -65,45 +65,57 @@ def exercise01question():
         """
     )
 
-    # print(year_min_temp.take(5))
-    # print(year_max_temp.take(5))
-
-    year_min_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_qa")
-    year_max_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_qb")
-
+    year_min_temp.rdd.repartition(1) \
+		     .sortBy(ascending=False, keyfunc=lambda (year, temp): temp) \
+		     .saveAsTextFile("sql_result/1_qa")
+    year_max_temp.rdd.repartition(1) \
+		     .sortBy(ascending=False, keyfunc=lambda (year, temp): temp) \
+		     .saveAsTextFile("sql_result/1_qb")
 
 def exercise01a():
     year_min_temp = sqlContext.sql(
         """
-        SELECT DISTINCT(year) AS year, station, temp
-        FROM
+        SELECT DISTINCT(tr.year) AS year, FIRST(tr.station) AS station, FIRST(temp) AS temp
+        FROM temp_readings AS tr
+        INNER JOIN
         (
-        SELECT year, station, temp, MIN(temp) OVER (PARTITION BY year) min_temp
+        SELECT year, MIN(temp) AS min_temp
         FROM temp_readings
-        )
-        WHERE temp = min_temp
-        ORDER BY temp ASC
+        GROUP BY year
+        ) AS tbl
+        ON tr.year = tbl.year
+        WHERE tr.temp = tbl.min_temp
+        GROUP BY tr.year
+        ORDER BY temp DESC
         """
     )
 
     year_max_temp = sqlContext.sql(
         """
-        SELECT DISTINCT(year) AS year, station, temp
-        FROM
+        SELECT DISTINCT(tr.year) AS year, FIRST(tr.station) AS station, FIRST(temp) AS temp
+        FROM temp_readings AS tr
+        INNER JOIN
         (
-        SELECT year, station, temp, MAX(temp) OVER (PARTITION BY year) max_temp
+        SELECT year, MAX(temp) AS max_temp
         FROM temp_readings
-        )
-        WHERE temp = max_temp
-        ORDEr BY temp DESC
+        GROUP BY year
+        ) AS tbl
+        ON tr.year = tbl.year
+        WHERE tr.temp = tbl.max_temp
+        GROUP BY tr.year
+        ORDER BY temp DESC
         """
     )
 
-    year_min_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_aa")
-    year_max_temp.rdd.repartition(1).saveAsTextFile("../nsc_result/1_ab")
+    year_min_temp.rdd.repartition(1) \
+		     .sortBy(ascending=False, keyfunc=lambda (year, station, temp): temp) \
+		     .saveAsTextFile("sql_result/1_aa")
+    year_max_temp.rdd.repartition(1) \
+		     .sortBy(ascending=False, keyfunc=lambda (year, station, temp): temp) \
+		     .saveAsTextFile("sql_result/1_ab")
 
 def exercise02():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("/user/x_rahol/data/temperature-readings.csv")
 
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda obs:
@@ -127,7 +139,9 @@ def exercise02aAPI(table):
                        .agg(functions.count("*").alias("count")) \
                        .orderBy(functions.count("*").desc())
 
-    month_counts.rdd.repartition(1).saveAsTextFile("../nsc_result/2_a")
+    month_count.rdd.repartition(1) \
+		   .sortBy(ascending=False, keyfunc=lambda (month, count): count) \
+		   .saveAsTextFile("sql_result/2_a")
 
 def exercise02a():
     month_count = sqlContext.sql(
@@ -145,11 +159,11 @@ def exercise02a():
 def exercise02bAPI(table):
     month_distinct_count = table.filter(table["temp"] > 10) \
                                 .groupBy("month") \
-                                .agg(functions.countDistinct("station").alias("count")) \
-                                .orderBy(functions.countDistinct("station").desc())
+                                .agg(functions.countDistinct("station").alias("count"))
 
-    # print(month_distinct_count.take(5))
-    month_distinct_count.rdd.repartition(1).saveAsTextFile("../nsc_result/2_b")
+    month_distinct_count.rdd.repartition(1) \
+			    .sortBy(ascending=False, keyfunc=lambda (month, count): count) \
+			    .saveAsTextFile("sql_result/2_b")
 
 def exercise02b():
     month_distinct_count = sqlContext.sql(
@@ -165,7 +179,7 @@ def exercise02b():
     print(month_distinct_count.take(5))
 
 def exercise03():
-    data = sc.textFile("../data/temperature-readings-small.csv")
+    data = sc.textFile("/user/x_rahol/data/temperature-readings.csv")
 
     observations = data.map(lambda line: line.split(";")) \
                        .filter(lambda obs:
@@ -181,25 +195,26 @@ def exercise03():
 
     station_month_avg_temps = sqlContext.sql(
         """
-        SELECT month, station, AVG(max_temp + min_temp) / 2 AS avg_temp
+        SELECT mytbl.month, mytbl.station, AVG(mytbl.max_temp + mytbl.min_temp) / 2 AS avg_temp
         FROM
         (
         SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
         FROM temp_readings
         GROUP BY day, month, station
-        )
-        GROUP BY month, station
-        ORDER BY AVG(max_temp + min_temp) / 2 DESC
+        ) AS mytbl
+        GROUP BY mytbl.month, mytbl.station
+        ORDER BY AVG(mytbl.max_temp + mytbl.min_temp) / 2 DESC
         """
     )
 
-    # print(station_month_avg_temps.take(5))
-    station_month_avg_temps.rdd.repartition(1).saveAsTextFile("../nsc_result/3")
+    station_month_avg_temps.rdd.repartition(1) \
+			       .sortBy(ascending=False, keyfunc=lambda (month, station, temp): temp) \
+			       .saveAsTextFile("sql_result/3")
 
 
 def exercise04():
-    temperature_data = sc.textFile("../data/temperature-readings-small2.csv")
-    precipitation_data = sc.textFile("../data/precipitation-readings.csv")
+    temperature_data = sc.textFile("/user/x_rahol/data/temperature-readings.csv")
+    precipitation_data = sc.textFile("/user/x_rahol/data/precipitation-readings.csv")
 
     temperature_obs = temperature_data.map(lambda line: line.split(";")) \
                                       .map(lambda obs: Row(station=int(obs[0]),
@@ -228,16 +243,19 @@ def exercise04():
         GROUP BY day, station
         ) AS pr
         ON tr.station = pr.station
+        WHERE temp >= 25 AND temp <= 30
+        AND precip >= 100 AND precip <= 200
         GROUP BY tr.station
         ORDER BY tr.station DESC
         """
     )
 
-    # print(combined.take(5))
-    combined.rdd.repartition(1).saveAsTextFile("../nsc_result/4")
+    combined.rdd.repartition(1) \
+		.sortBy(ascending=False, keyfunc=lambda (station, temp, precip): station) \
+		.saveAsTextFile("sql_result/4")
 
 def exercise05():
-    station_data = sc.textFile("../data/stations-Ostergotland.csv")
+    station_data = sc.textFile("/user/x_rahol/data/stations-Ostergotland.csv")
 
     stations = station_data.map(lambda line: line.split(";")) \
                            .map(lambda obs: int(obs[0])) \
@@ -245,7 +263,7 @@ def exercise05():
     stations = sc.broadcast(stations)
     stations = {station: True for station in stations.value}
 
-    precipitation_data = sc.textFile("../data/precipitation-readings.csv")
+    precipitation_data = sc.textFile("/user/x_rahol/data/precipitation-readings.csv")
 
     precipitation_obs = precipitation_data.map(lambda line: line.split(";")) \
                                           .filter(lambda obs: stations.get(int(obs[0]), False)) \
@@ -259,36 +277,37 @@ def exercise05():
 
     precipitation_avg_month = sqlContext.sql(
         """
-        SELECT month, AVG(precip) AS avg_precip
+        SELECT mytbl2.month, AVG(mytbl2.precip) AS avg_precip
         FROM
         (
-        SELECT month, station, SUM(precip) AS precip
+        SELECT mytbl1.month, mytbl1.station, SUM(mytbl1.precip) AS precip
         FROM
         (
         SELECT month, station, SUM(precip) AS precip
         FROM precip_readings
         GROUP BY day, month, station
-        )
-        GROUP BY month, station
-        )
-        GROUP BY month
-        ORDER BY month DESC
+        ) AS mytbl1
+        GROUP BY mytbl1.month, mytbl1.station
+        ) AS mytbl2
+        GROUP BY mytbl2.month
+        ORDER BY mytbl2.month DESC
         """
     )
 
-    print(precipitation_avg_month.rdd.take(5))
-    # precipitation_avg_month.rdd.repartition(1).saveAsTextFile("../nsc_result/5")
+    precipitation_avg_month.rdd.repartition(1) \
+			       .sortBy(ascending=False, keyfunc=lambda (month, precip): month) \
+			       .saveAsTextFile("sql_result/5")
 
 def exercise06():
-    station_data = sc.textFile("../data/stations-Ostergotland.csv")
+    station_data = sc.textFile("/user/x_rahol/data/stations-Ostergotland.csv")
 
     stations = station_data.map(lambda line: line.split(";")) \
                            .map(lambda obs: int(obs[0])) \
-                           .distinct()
+                           .distinct().collect()
     stations = sc.broadcast(stations)
     stations = {station: True for station in stations.value}
 
-    temperature_data = sc.textFile("../data/temperature-readings-ostergotland.csv")
+    temperature_data = sc.textFile("/user/x_rahol/data/temperature-readings.csv")
 
     temperature_data_filtered = temperature_data.map(lambda line: line.split(";")) \
                                                 .filter(lambda obs:
@@ -305,14 +324,14 @@ def exercise06():
 
     month_avg_temp = sqlContext.sql(
         """
-        SELECT month, AVG(max_temp + min_temp) / 2 AS avg_temp
+        SELECT mytbl.month, AVG(mytbl.max_temp + mytbl.min_temp) / 2 AS avg_temp
         FROM
         (
         SELECT month, station, MIN(temp) AS min_temp, MAX(temp) AS max_temp
         FROM temp_readings
         GROUP BY day, month, station
-        )
-        GROUP BY month
+        ) AS mytbl
+        GROUP BY mytbl.month
         """
     )
 
@@ -321,23 +340,23 @@ def exercise06():
                                       .agg(functions.avg(month_avg_temp["avg_temp"]).alias("longterm_avg_temp"))
 
     result = month_avg_temp.join(longterm_avg_temp,
-                                   (functions.substring(month_avg_temp["month"], 6, 7) ==
-                                    longterm_avg_temp["month"]), "inner") \
-                             .select(month_avg_temp["month"],
-                                     (functions.abs(month_avg_temp["avg_temp"]) -
-                                      functions.abs(longterm_avg_temp["longterm_avg_temp"])).alias("temp")) \
-                             .orderBy(month_avg_temp["month"].desc())
+                                 (functions.substring(month_avg_temp["month"], 6, 7) ==
+                                  longterm_avg_temp["month"]), "inner") \
+                           .select(month_avg_temp["month"],
+                                   (functions.abs(month_avg_temp["avg_temp"]) -
+                                    functions.abs(longterm_avg_temp["longterm_avg_temp"])).alias("temp")) \
+                           .orderBy(month_avg_temp["month"].desc())
 
-    # print(result.take(5))
-
-    result.repartition(1).saveAsTextFile("../nsc_result/6")
+    result.rdd.repartition(1) \
+	      .sortBy(ascending=False, keyfunc=lambda (month, temp): month) \
+	      .saveAsTextFile("sql_result/6")
 
 def main():
     # exercise01()
     # exercise02()
     # exercise03()
     # exercise04()
-    exercise05()
+    # exercise05()
     # exercise06()
 
 main()
