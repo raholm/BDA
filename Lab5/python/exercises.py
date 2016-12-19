@@ -22,16 +22,14 @@ def haversine(lon1, lat1, lon2, lat2):
     return km
 
 def kernel_model():
-    h_distance = 100000 # Up to you
-    h_date = 7 # Up to you
-    h_time = 2 # Up to you
+    h_distance = 100
+    h_date = 7
+    h_time = 2
 
-    pred_latitude = 58.409158 # Up to you
-    pred_longitude = 15.607452 # Up to you
+    pred_latitude = 58.409158
+    pred_longitude = 15.607452
 
     pred_date = datetime.strptime("2013-06-24", "%Y-%m-%d")
-    pred_time = datetime.strptime("14:00:00", "%H:%M:%S")
-
     pred_times = [datetime.strptime(time, "%H:%M:%S")
                   for time in ["04:00:00", "06:00:00", "08:00:00", "10:00:00",
                                "12:00:00", "14:00:00", "16:00:00", "18:00:00",
@@ -45,6 +43,7 @@ def kernel_model():
                        .map(lambda obs: (int(obs[0]),
                                          (float(obs[3]),
                                           float(obs[4]))))
+
     # (station, (date, time, temperature))
     temps = temps.filter(lambda line: len(line) > 0) \
                  .map(lambda line: line.split(",")) \
@@ -65,8 +64,8 @@ def kernel_model():
 
     result = [combined_data.filter(lambda x:
                                    filter_date(x=x,
-                                               dt=datetime.combine(datetime.date(pred_date),
-                                                                   datetime.time(pred_time)))) \
+                                               date=pred_date,
+                                               time=pred_time)) \
               .map(lambda x: (None,
                               (kernel(x, pred_longitude,
                                       pred_latitude, h_distance,
@@ -84,10 +83,12 @@ def kernel_model():
 
     print(result)
 
-def filter_date(x, dt):
-    merged_raw = datetime.combine(datetime.date(get_date(x)),
+def filter_date(x, date, time):
+    merged_pred = datetime.combine(datetime.date(date),
+                                   datetime.time(time))
+    merged_true = datetime.combine(datetime.date(get_date(x)),
                                   datetime.time(get_time(x)))
-    return merged_raw <= dt
+    return merged_true <= merged_pred
 
 def gaussian_kernel(u):
     return exp(-u**2)
@@ -115,9 +116,6 @@ def kernel(x, longitude, latitude, h_dist, date, h_date, time, h_time):
             date_kernel(x, date, h_date) + time_kernel(x, time, h_time))
     return kern
 
-def get_temp(x):
-    return x[1][-1]
-
 def get_longitude(x):
     return x[1][0]
 
@@ -129,6 +127,9 @@ def get_date(x):
 
 def get_time(x):
     return x[1][3]
+
+def get_temp(x):
+    return x[1][4]
 
 def main():
     kernel_model()
