@@ -135,4 +135,3 @@ def main():
     kernel_model()
 
 main()
-
