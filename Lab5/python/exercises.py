@@ -36,7 +36,7 @@ def kernel_model():
                                "20:00:00", "22:00:00", "00:00:00"]]
 
     stations = sc.textFile("../data/stations.csv")
-    temps = sc.textFile("../data/temps50k.csv")
+    temps = sc.textFile("../data/temperature-readings.csv")
 
     # (station, (latitude, longitude))
     stations = stations.map(lambda line: line.split( ",")) \
@@ -46,7 +46,7 @@ def kernel_model():
 
     # (station, (date, time, temperature))
     temps = temps.filter(lambda line: len(line) > 0) \
-                 .map(lambda line: line.split(",")) \
+                 .map(lambda line: line.split(";")) \
                  .map(lambda obs: (int(obs[0]),
                                    (datetime.strptime(obs[1], "%Y-%m-%d"),
                                     datetime.strptime(obs[2], "%H:%M:%S"),
@@ -105,6 +105,7 @@ def kernel_model():
             time_kernel_values.append(time)
             distance_kernel_values.append(distance)
 
+    print(len(date_kernel_values))
     print(sorted(date_kernel_values, reverse=True)[:10])
     print(sorted(time_kernel_values, reverse=True)[:10])
     print(sorted(distance_kernel_values, reverse=True)[:10])
