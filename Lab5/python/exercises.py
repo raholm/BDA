@@ -52,13 +52,13 @@ def kernel_model():
                                     datetime.strptime(obs[2], "%H:%M:%S"),
                                     float(obs[3]))))
 
-    stations_data = stations.collectAsMap()
-    stations_data = sc.broadcast(stations_data).value
+    station_positions = stations.collectAsMap()
+    station_positions = sc.broadcast(station_positions).value
 
     # (station, (longitude, latitude, date, time, temperature))
     combined_data = temps.map(lambda (station, (date, time, temp)):
-                              (station, (stations_data[station][1],
-                                         stations_data[station][0],
+                              (station, (station_positions[station][1],
+                                         station_positions[station][0],
                                          date, time, temp)))
     combined_data.cache()
 
@@ -67,14 +67,14 @@ def kernel_model():
                                                date=pred_date,
                                                time=pred_time)) \
               .map(lambda x: (None,
-                              (kernel(x, pred_longitude,
-                                      pred_latitude, h_distance,
-                                      pred_date, h_date,
-                                      pred_time, h_time) *  get_temp(x),
-                               kernel(x, pred_longitude,
-                                      pred_latitude, h_distance,
-                                      pred_date, h_date,
-                                      pred_time, h_time)))) \
+                              (temperature_kernel(x, pred_longitude,
+                                                  pred_latitude, h_distance,
+                                                  pred_date, h_date,
+                                                  pred_time, h_time) *  get_temp(x),
+                               temperature_kernel(x, pred_longitude,
+                                                  pred_latitude, h_distance,
+                                                  pred_date, h_date,
+                                                  pred_time, h_time)))) \
               .reduceByKey(lambda (estimate1, kernel1), (estimate2, kernel2):
                            (estimate1 + estimate2, kernel1 + kernel2)) \
               .map(lambda (key, (estimate, kernel)): (key, estimate / kernel)) \
@@ -83,11 +83,38 @@ def kernel_model():
 
     print(result)
 
+    kernels = [combined_data.filter(lambda x:
+                                    filter_date(x=x,
+                                                date=pred_date,
+                                                time=pred_time)) \
+               .map(lambda x: (None,
+                               (date_kernel(x, pred_date, h_date),
+                                time_kernel(x, pred_time, h_time),
+                                distance_kernel(x, pred_longitude,
+                                                pred_latitude, h_distance))))
+               .collect()
+              for pred_time in pred_times]
+
+    date_kernel_values = []
+    time_kernel_values = []
+    distance_kernel_values = []
+
+    for kernel in kernels:
+        for (_, (date, time, distance)) in kernel:
+            date_kernel_values.append(date)
+            time_kernel_values.append(time)
+            distance_kernel_values.append(distance)
+
+    print(sorted(date_kernel_values, reverse=True)[:10])
+    print(sorted(time_kernel_values, reverse=True)[:10])
+    print(sorted(distance_kernel_values, reverse=True)[:10])
+
+
 def filter_date(x, date, time):
     merged_pred = datetime.combine(datetime.date(date),
                                    datetime.time(time))
     merged_true = datetime.combine(datetime.date(get_date(x)),
-                                  datetime.time(get_time(x)))
+                                   datetime.time(get_time(x)))
     return merged_true <= merged_pred
 
 def gaussian_kernel(u):
@@ -111,10 +138,10 @@ def distance_kernel(x, longitude, latitude, h):
                          longitude, latitude)
     return gaussian_kernel(distance / h)
 
-def kernel(x, longitude, latitude, h_dist, date, h_date, time, h_time):
-    kern = (distance_kernel(x, longitude, latitude, h_dist) +
-            date_kernel(x, date, h_date) + time_kernel(x, time, h_time))
-    return kern
+def temperature_kernel(x, longitude, latitude, h_dist, date, h_date, time, h_time):
+    kernel = (distance_kernel(x, longitude, latitude, h_dist) +
+              date_kernel(x, date, h_date) + time_kernel(x, time, h_time))
+    return kernel
 
 def get_longitude(x):
     return x[1][0]
