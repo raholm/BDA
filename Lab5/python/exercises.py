@@ -35,8 +35,11 @@ def kernel_model():
                                "12:00:00", "14:00:00", "16:00:00", "18:00:00",
                                "20:00:00", "22:00:00", "00:00:00"]]
 
-    stations = sc.textFile("../data/stations.csv")
-    temps = sc.textFile("../data/temperature-readings.csv")
+    stations = sc.textFile("../../data/stations.csv")
+    temps = sc.textFile("../../data/temperature-readings.csv").sample(False, .0001, 12345)
+
+    # stations = sc.textFile("/user/x_rahol/data/stations.csv")
+    # temps = sc.textFile("/user/x_rahol/data/temperature-readings.csv")
 
     # (station, (latitude, longitude))
     stations = stations.map(lambda line: line.split( ",")) \
@@ -62,53 +65,66 @@ def kernel_model():
                                          date, time, temp)))
     combined_data.cache()
 
-    result = [combined_data.filter(lambda x:
-                                   filter_date(x=x,
-                                               date=pred_date,
-                                               time=pred_time)) \
-              .map(lambda x: (None,
-                              (temperature_kernel(x, pred_longitude,
-                                                  pred_latitude, h_distance,
-                                                  pred_date, h_date,
-                                                  pred_time, h_time) *  get_temp(x),
-                               temperature_kernel(x, pred_longitude,
-                                                  pred_latitude, h_distance,
-                                                  pred_date, h_date,
-                                                  pred_time, h_time)))) \
-              .reduceByKey(lambda (estimate1, kernel1), (estimate2, kernel2):
-                           (estimate1 + estimate2, kernel1 + kernel2)) \
-              .map(lambda (key, (estimate, kernel)): (key, estimate / kernel)) \
-              .collect()[0][1]
-              for pred_time in pred_times]
+    # result = [combined_data.filter(lambda x:
+    #                                filter_date(x=x,
+    #                                            date=pred_date,
+    #                                            time=pred_time)) \
+    #           .map(lambda x: (temperature_kernel(x, pred_longitude,
+    #                                              pred_latitude, h_distance,
+    #                                              pred_date, h_date,
+    #                                              pred_time, h_time),
+    #                           get_temp(x))) \
+    #           .map(lambda (kernel, temp):
+    #                (None, (kernel * temp, kernel))) \
+    #           .reduceByKey(lambda (estimate1, kernel1), (estimate2, kernel2):
+    #                        (estimate1 + estimate2, kernel1 + kernel2)) \
+    #           .map(lambda (key, (estimate, kernel)): (key, estimate / kernel)) \
+    #           .collect()[0][1]
+    #           for pred_time in pred_times]
 
-    print(result)
+    # print(result)
+
+    # kernel_result = sc.parallelize(result) \
+    #                   .repartition(1) \
+    #                   .saveAsTextFile("/user/x_rahol/result/kernel_result/temps")
 
     kernels = [combined_data.filter(lambda x:
                                     filter_date(x=x,
                                                 date=pred_date,
                                                 time=pred_time)) \
-               .map(lambda x: (None,
-                               (date_kernel(x, pred_date, h_date),
+               .map(lambda x: (pred_time.strftime("%Y-%m-%d %H-%M-%S"),
+                               (date_distance(x, pred_date),
+                                date_kernel(x, pred_date, h_date),
+                                time_distance(x, pred_time),
                                 time_kernel(x, pred_time, h_time),
+                                distance_distance(x, pred_longitude, pred_latitude),
                                 distance_kernel(x, pred_longitude,
-                                                pred_latitude, h_distance))))
+                                                pred_latitude, h_distance)))) \
                .collect()
-              for pred_time in pred_times]
+               # .repartition(1).saveAsTextFile("/user/x_rahol/result/kernel_result/time_%i" % (i))
+               for i, pred_time in enumerate(pred_times)]
 
     date_kernel_values = []
     time_kernel_values = []
     distance_kernel_values = []
 
     for kernel in kernels:
-        for (_, (date, time, distance)) in kernel:
-            date_kernel_values.append(date)
-            time_kernel_values.append(time)
-            distance_kernel_values.append(distance)
+        for (_, (ddate, kdate, dtime, ktime, ddistance, kdistance)) in kernel:
+            date_kernel_values.append((ddate, kdate))
+            time_kernel_values.append((dtime, ktime))
+            distance_kernel_values.append((ddistance, kdistance))
 
-    print(len(date_kernel_values))
-    print(sorted(date_kernel_values, reverse=True)[:10])
-    print(sorted(time_kernel_values, reverse=True)[:10])
-    print(sorted(distance_kernel_values, reverse=True)[:10])
+    sc.parallelize(sorted(date_kernel_values, reverse=False, key=lambda x: x[0])) \
+      .repartition(1) \
+      .saveAsTextFile("../result/kernel_result/date_kernel")
+
+    sc.parallelize(sorted(time_kernel_values, reverse=False, key=lambda x: x[0])) \
+      .repartition(1) \
+      .saveAsTextFile("../result/kernel_result/time_kernel")
+
+    sc.parallelize(sorted(distance_kernel_values, reverse=False, key=lambda x: x[0])) \
+      .repartition(1) \
+      .saveAsTextFile("../result/kernel_result/distance_kernel")
 
 
 def filter_date(x, date, time):
@@ -122,22 +138,34 @@ def gaussian_kernel(u):
     return exp(-u**2)
 
 def date_kernel(x, date, h):
-    distance = (get_date(x) - date).days
+    distance = date_distance(x, date)
     return gaussian_kernel(distance / h)
 
+def date_distance(x, date):
+    distance = (date - get_date(x)).days
+    return distance
+
 def time_kernel(x, time, h):
+    distance = time_distance(x, time)
+    return gaussian_kernel(distance / h)
+
+def time_distance(x, time):
     seconds_per_hour = 3600
     distance = (get_time(x) - time).seconds / seconds_per_hour
 
     if distance > 12:
         distance = 24 - distance
 
-    return gaussian_kernel(distance / h)
+    return distance
 
 def distance_kernel(x, longitude, latitude, h):
+    distance = distance_distance(x, longitude, latitude)
+    return gaussian_kernel(distance / h)
+
+def distance_distance(x, longitude, latitude):
     distance = haversine(get_longitude(x), get_latitude(x),
                          longitude, latitude)
-    return gaussian_kernel(distance / h)
+    return distance
 
 def temperature_kernel(x, longitude, latitude, h_dist, date, h_date, time, h_time):
     kernel = (distance_kernel(x, longitude, latitude, h_dist) +
